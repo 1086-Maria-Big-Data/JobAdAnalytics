@@ -6,7 +6,7 @@ import org.apache.spark.sql.SparkSession
 object IndexUtil {
 
     val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc/"
-    val formats = Set[String]("warc", "wat", "wet")
+    val subsets = Set[String]("warc", "robotstxt", "crawldiagnostics")
     val crawls = Set[String](
         "CC-MAIN-2013-20", "CC-MAIN-2013-48", "CC-MAIN-2014-10", "CC-MAIN-2014-15", "CC-MAIN-2014-23", "CC-MAIN-2014-35", "CC-MAIN-2014-41", "CC-MAIN-2014-42", "CC-MAIN-2014-49", "CC-MAIN-2014-52", 
         "CC-MAIN-2015-06", "CC-MAIN-2015-11", "CC-MAIN-2015-14", "CC-MAIN-2015-18", "CC-MAIN-2015-22", "CC-MAIN-2015-27", "CC-MAIN-2015-32", "CC-MAIN-2015-35", "CC-MAIN-2015-40", "CC-MAIN-2015-48", 
@@ -45,15 +45,15 @@ object IndexUtil {
         }
     }
 
-    def filter(index_df: DataFrame, crawl: String, format: String, filter_exprs: Column=null): DataFrame = {
+    def filter(index_df: DataFrame, crawl: String, subset: String, filter_exprs: Column=null): DataFrame = {
 
         if (!crawls.contains(crawl)) throw new IllegalArgumentException(s"Invalid crawl ${crawl}")
-        if (!formats.contains(format)) throw new IllegalArgumentException(s"Invalid format ${format}. Must be one of ${formats.mkString(", ")}")
+        if (!subsets.contains(subset)) throw new IllegalArgumentException(s"Invalid subset ${subset}. Must be one of ${subsets.mkString(", ")}")
 
         if (filter_exprs != null)
-            return index_df.where(index_df("crawl") === crawl && index_df("subset") === format).where(filter_exprs)
+            return index_df.where(index_df("crawl") === crawl && index_df("subset") === subset).where(filter_exprs)
         
-        return index_df.where(index_df("crawl") === crawl && index_df("subset") === format)
+        return index_df.where(index_df("crawl") === crawl && index_df("subset") === subset)
     }
 
     def merge(index_dfs: DataFrame*): DataFrame = {
