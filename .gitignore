@@ -1,0 +1,9 @@
+metastore_db
+.idea/
+.bsp/
+project/*
+derby.log
+target/*
+.vscode
+.metals/
+.bloop/*
