@@ -9,7 +9,7 @@ object CCIdxMain {
     def main(args: Array[String]): Unit = {
 		val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc/"
 		val viewName = "ccindex"
-			val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
+			val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).+\'"
 
 
 			val conf = new SparkConf().setAppName(this.getClass.getCanonicalName())
