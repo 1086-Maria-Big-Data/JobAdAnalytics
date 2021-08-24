@@ -14,7 +14,6 @@ object CCIdxMain {
 			val conf = new SparkConf().setAppName(this.getClass.getCanonicalName())
 			val spark = SparkSession.builder.master("local[*]").config(conf).getOrCreate
 			val sc = spark.sparkContext
-			spark.conf.set("spark.sql.debug.maxToStringFields", 1000)
 		val df = spark.read.load(tablePath)
 		df.createOrReplaceTempView(viewName)
 		spark.sql(sqlQuery).show
