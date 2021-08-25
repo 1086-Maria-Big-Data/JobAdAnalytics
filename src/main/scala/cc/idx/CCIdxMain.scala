@@ -1,9 +1,9 @@
 package cc.idx
 
-import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Dataset, DataFrame}
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.SparkConf
 import org.apache.spark.sql.types.{StructType, StructField, IntegerType, TimestampType, StringType, ShortType}
 
 import org.archive.archivespark._
@@ -14,10 +14,7 @@ import org.archive.archivespark.functions._
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
 
-import org.apache.spark.deploy.SparkHadoopUtil
-import org.apache.hadoop.fs.FileSystem
-import java.net.URI
-import org.apache.hadoop.fs.Path
+import appUtil.Util
 
 /**
  * CCIdxMain is used for querying the index table from common crawl's S3 bucket
@@ -26,6 +23,11 @@ import org.apache.hadoop.fs.Path
  */
 
 object CCIdxMain {
+
+    val props = Util.loadConfig()
+    val access_key = props("AWS_ACCESS_KEY_ID")
+    val access_secret = props("AWS_SECRET_ACCESS_KEY")
+
     /**
      * tablePath = the common crawl index's s3 bucket
      * viewName = name of common crawl index
@@ -77,9 +79,6 @@ object CCIdxMain {
         .set("spark.sql.parquet.filterPushdown", "true")
         .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
         .set("spark.executor.userClassPathFirst", "true")
-        .set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
-        .set("fs.s3.awsAccessKeyId", "AKIATTMFMPAL4QFBYRFM")
-        .set("fs.s3.awsSecretAccessKey", "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")
 
     def main(args: Array[String]): Unit = {
         /**
@@ -88,6 +87,11 @@ object CCIdxMain {
         val spark = SparkSession.builder.master("local[*]")
             .config(conf)
             .getOrCreate
+
+        val config = spark.sparkContext.hadoopConfiguration
+            config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
+            config.set("fs.s3a.awsAccessKeyId", access_key)
+            config.set("fs.s3a.awsSecretAccessKey", access_secret)
         /**
          * loading the index to dataframe(df)
          */
@@ -132,32 +136,17 @@ object TestExtract {
         val spark = SparkSession.builder.master("local[*]")
             .config(CCIdxMain.conf)
             .getOrCreate
-        
-        // val s3URI = "s3://commoncrawl"
 
-        // FileSystem.setDefaultUri(spark.sparkContext.hadoopConfiguration, new URI(s3URI))
-        // FileSystem.setDefaultUri(SparkHadoopUtil.get.conf, new URI(s3URI))
+        println(CCIdxMain.access_key)
+        println(CCIdxMain.access_secret)
 
-        // val config = SparkHadoopUtil.get.conf
-        // config.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
-        // config.set("fs.s3.awsAccessKeyId", "AKIATTMFMPAL4QFBYRFM")
-        // config.set("fs.s3.awsSecretAccessKey", "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")
+        val config = spark.sparkContext.hadoopConfiguration
+        config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
+        config.set("fs.s3a.awsAccessKeyId", CCIdxMain.access_key)
+        config.set("fs.s3a.awsSecretAccessKey", CCIdxMain.access_secret)
 
-        // val fs = FileSystem.get(config)
-        // val raw = fs.open(new Path("/crawl-data/CC-MAIN-2021-31/segments/1627046149929.88/warc/CC-MAIN-20210723143921-20210723173921-00000.warc.gz"))
-        // for (i <- 1 until 300) {
-        //     println(raw.readChar().toString())
-        // }
-        
-        // val spec = HdfsFileSpec("/crawl-data/CC-MAIN-2021-31/segments/1627046149929.88/warc/*")
-
-        // val x = spec.load(spark.sparkContext, 1).take(50).foreach(x => println(spec.parse(x).get.toJsonString))
-        /**
-         * Creating an RDD of your downloaded WARC file
-         */
-
-        val rdd2 = loadWARC("/Users/vincey/downloads/CC-MAIN-20210723143921-20210723173921-00000.warc.gz").enrich(HtmlText.ofEach(Html.all("a")))
-        println(rdd2.take(1)(0).toJsonString)
+        val rdd = loadWARC("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046157039.99/warc/CC-MAIN-20210805193327-20210805223327-00719.warc.gz").enrich(HtmlText.ofEach(Html.all("a")))
+        println(rdd.take(1)(0).toJsonString)
         
         spark.stop
 

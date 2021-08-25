@@ -1,8 +1,8 @@
 import cc.idx.{CCIdxMain, TestExtract}
 
 object mainObject {
+
   def main(args: Array[String]): Unit = {
-    println("test")
 
     // Sample run -- still WIP
     /**
@@ -15,6 +15,7 @@ object mainObject {
      * To set environment vairable in IntelliJ click on the dropdown with mainObject and edit configuration
      * then set environment variable to AWS_ACCESS_KEY_ID=******;AWS_SECRET_ACCESS_KEY=*******
      */
+
     CCIdxMain.main(args)
   }
 }
