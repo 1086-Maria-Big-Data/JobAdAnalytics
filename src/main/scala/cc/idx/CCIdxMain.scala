@@ -137,9 +137,6 @@ object TestExtract {
             .config(CCIdxMain.conf)
             .getOrCreate
 
-        println(CCIdxMain.access_key)
-        println(CCIdxMain.access_secret)
-
         val config = spark.sparkContext.hadoopConfiguration
         config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
         config.set("fs.s3a.awsAccessKeyId", CCIdxMain.access_key)

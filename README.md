@@ -14,8 +14,12 @@ related to job market advertisements
 * Amazon Web Services
 
 ## Setup
-Set Amazon Web Service keys as environment variables
-* For Intellij
-  * Go to the Run dropdown and edit configurations
-  * In the environment variable option input the below line with the #s as your access and secret key
-  * AWS_ACCESS_KEY_ID=##########;AWS_SECRET_KEY=#########
+Set Amazon Web Service keys as `app.config` variables
+  * Now, to setup your access credentials:
+  * Create a file named `app.config` in your project root folder.
+  * Add your AWS access key and secret as such:
+``` 
+AWS_ACCESS_KEY_ID=INSERT_YOUR_ACCESS_KEY
+AWS_SECRET_ACCESS_KEY=INSERT_YOUR_ACCESS_SECRET
+```
+  * Save the file.
