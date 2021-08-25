@@ -8,6 +8,16 @@ import org.apache.spark.sql.types.{StructType, StructField, IntegerType, Timesta
 
 import org.archive.archivespark._
 import org.archive.archivespark.specific.warc._
+import org.archive.archivespark.specific.raw._
+import org.archive.archivespark.functions._
+
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+
+import org.apache.spark.deploy.SparkHadoopUtil
+import org.apache.hadoop.fs.FileSystem
+import java.net.URI
+import org.apache.hadoop.fs.Path
 
 object CCIdxMain {
 
@@ -55,6 +65,9 @@ object CCIdxMain {
         .set("spark.sql.parquet.filterPushdown", "true")
         .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
         .set("spark.executor.userClassPathFirst", "true")
+        .set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
+        .set("fs.s3.awsAccessKeyId", "AKIATTMFMPAL4QFBYRFM")
+        .set("fs.s3.awsSecretAccessKey", "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")
 
     def main(args: Array[String]): Unit = {
 
@@ -79,6 +92,9 @@ object CCIdxMain {
 
 object TestExtract {
 
+    Logger.getLogger("org").setLevel(Level.ERROR)
+    Logger.getLogger("akka").setLevel(Level.ERROR)
+
     def loadWARC(path: String): RDD[WarcRecord] = {
         return ArchiveSpark.load(WarcSpec.fromFiles(path))
     }
@@ -88,10 +104,29 @@ object TestExtract {
         val spark = SparkSession.builder.master("local[*]")
             .config(CCIdxMain.conf)
             .getOrCreate
+        
+        // val s3URI = "s3://commoncrawl"
 
-        val rdd = loadWARC("/Users/vincey/downloads/CC-MAIN-20180116070444-20180116090444-00000.warc")
+        // FileSystem.setDefaultUri(spark.sparkContext.hadoopConfiguration, new URI(s3URI))
+        // FileSystem.setDefaultUri(SparkHadoopUtil.get.conf, new URI(s3URI))
 
-        println(rdd.peekJson)
+        // val config = SparkHadoopUtil.get.conf
+        // config.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
+        // config.set("fs.s3.awsAccessKeyId", "AKIATTMFMPAL4QFBYRFM")
+        // config.set("fs.s3.awsSecretAccessKey", "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")
+
+        // val fs = FileSystem.get(config)
+        // val raw = fs.open(new Path("/crawl-data/CC-MAIN-2021-31/segments/1627046149929.88/warc/CC-MAIN-20210723143921-20210723173921-00000.warc.gz"))
+        // for (i <- 1 until 300) {
+        //     println(raw.readChar().toString())
+        // }
+        
+        // val spec = HdfsFileSpec("/crawl-data/CC-MAIN-2021-31/segments/1627046149929.88/warc/*")
+
+        // val x = spec.load(spark.sparkContext, 1).take(50).foreach(x => println(spec.parse(x).get.toJsonString))
+
+        val rdd2 = loadWARC("/Users/vincey/downloads/CC-MAIN-20210723143921-20210723173921-00000.warc.gz").enrich(HtmlText.ofEach(Html.all("a")))
+        println(rdd2.take(1)(0).toJsonString)
         
         spark.stop
 
