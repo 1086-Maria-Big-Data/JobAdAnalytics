@@ -9,8 +9,16 @@ import org.apache.spark.sql.types.{StructType, StructField, IntegerType, Timesta
 import org.archive.archivespark._
 import org.archive.archivespark.specific.warc._
 
-object CCIdxMain {
+/**
+ * CCIdxMain is used for querying the index table from common crawl's S3 bucket
+ */
 
+object CCIdxMain {
+    /**
+     * tablePath = the common crawl index's s3 bucket
+     * viewName = name of common crawl index
+     * schema = table structure for index
+     */
     val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc"
     val viewName = "ccindex"
     val schema = StructType(Array(
@@ -46,7 +54,9 @@ object CCIdxMain {
         StructField("crawl", StringType, true),
         StructField("subset", StringType, true)
     ))
-
+    /**
+     * Setting spark configurations
+     */
     val conf = new SparkConf()
         .setAppName(this.getClass.getCanonicalName())
         .set("spark.hadoop.parquet.enable.dictionary", "true")
@@ -57,17 +67,31 @@ object CCIdxMain {
         .set("spark.executor.userClassPathFirst", "true")
 
     def main(args: Array[String]): Unit = {
-
+        /**
+         * Building the spark session
+         */
         val spark = SparkSession.builder.master("local[*]")
             .config(conf)
             .getOrCreate
-
+        /**
+         * loading the index to dataframe(df)
+         */
         val df = spark.read.schema(schema).parquet(tablePath)
         df.printSchema()
+        /**
+         * Creating SQL query to query the index dataframe
+         */
         //val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
         val sqlQuery = "Select url, content_languages From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url_host_tld=\'va\'"
+
+        /**
+         * Creating a SQL table from the index dataframe
+         */
         df.createOrReplaceTempView(viewName)
 
+        /**
+         * Describing the table schema and running the query
+         */
         spark.sql("describe formatted " + viewName).show(10000)
         spark.sql(sqlQuery).show(100)
 
