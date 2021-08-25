@@ -2,7 +2,6 @@ import cc.idx.{CCIdxMain, TestExtract}
 
 object mainObject {
   def main(args: Array[String]): Unit = {
-    println("test")
 
     // Sample run -- still WIP
     /**

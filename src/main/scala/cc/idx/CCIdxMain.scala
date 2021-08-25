@@ -60,21 +60,21 @@ object CCIdxMain {
      * Setting spark configurations
      */
     val conf = new SparkConf()
-        .setAppName(this.getClass.getCanonicalName())
-        .set("spark.hadoop.parquet.enable.dictionary", "true")
-        .set("spark.hadoop.parquet.enable.summary-metadata", "true")
-        .set("spark.sql.hive.metastorePartitionPruning", "true")
-        .set("spark.sql.parquet.filterPushdown", "true")
-        .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-        .set("spark.executor.userClassPathFirst", "true")
-
+      .setAppName(this.getClass.getCanonicalName())
+      .set("spark.hadoop.parquet.enable.dictionary", "true")
+      .set("spark.hadoop.parquet.enable.summary-metadata", "true")
+      .set("spark.sql.hive.metastorePartitionPruning", "true")
+      .set("spark.sql.parquet.filterPushdown", "true")
+      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      .set("spark.executor.userClassPathFirst", "true")
+//Warning main method will take about 30 minutes to run, we should try to optimize
     def main(args: Array[String]): Unit = {
         /**
          * Building the spark session
          */
         val spark = SparkSession.builder.master("local[*]")
-            .config(conf)
-            .getOrCreate
+          .config(conf)
+          .getOrCreate
         /**
          * loading the index to dataframe(df)
          */
@@ -83,8 +83,8 @@ object CCIdxMain {
         /**
          * Creating SQL query to query the index dataframe
          */
-        //val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
-        val sqlQuery = "Select url, content_languages From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url_host_tld=\'va\'"
+        //val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' and url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\' and content_languages=\'eng\' and url_host_tld in (\'com\',\'net\',\'org\',\'edu\')"
+        val sqlQuery = "Select url, warc_filename From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And content_languages=\'eng\' AND url_host_tld=\'com\'"
 
         /**
          * Creating a SQL table from the index dataframe
@@ -95,7 +95,13 @@ object CCIdxMain {
          * Describing the table schema and running the query
          */
         spark.sql("describe formatted " + viewName).show(10000)
-        spark.sql(sqlQuery).show(100)
+        val firstFilter = spark.sql(sqlQuery)
+          firstFilter.show(100)
+        firstFilter.createOrReplaceTempView("firstFilter")
+        //Second Query to filter for job sites
+        val query2 = "SELECT * From firstFilter where url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
+        val jobsFilter = spark.sql(query2)
+        jobsFilter.show(10)
 
         spark.stop
 
@@ -114,15 +120,15 @@ object TestExtract {
          * Building the spark session
          */
         val spark = SparkSession.builder.master("local[*]")
-            .config(CCIdxMain.conf)
-            .getOrCreate
+          .config(CCIdxMain.conf)
+          .getOrCreate
         /**
          * Creating an RDD of your downloaded WARC file
          */
         val rdd = loadWARC("/Users/grant/downloads/CC-MAIN-20180116070444-20180116090444-00000.warc")
 
         println(rdd.peekJson)
-        
+
         spark.stop
 
         System.exit(0)
