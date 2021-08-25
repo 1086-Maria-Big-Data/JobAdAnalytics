@@ -1,13 +1,20 @@
 package cc.idx
 
-import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Dataset, DataFrame}
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.SparkConf
 import org.apache.spark.sql.types.{StructType, StructField, IntegerType, TimestampType, StringType, ShortType}
 
 import org.archive.archivespark._
 import org.archive.archivespark.specific.warc._
+import org.archive.archivespark.specific.raw._
+import org.archive.archivespark.functions._
+
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+
+import appUtil.Util
 
 /**
  * CCIdxMain is used for querying the index table from common crawl's S3 bucket
@@ -16,6 +23,11 @@ import org.archive.archivespark.specific.warc._
  */
 
 object CCIdxMain {
+
+    val props = Util.loadConfig()
+    val access_key = props("AWS_ACCESS_KEY_ID")
+    val access_secret = props("AWS_SECRET_ACCESS_KEY")
+
     /**
      * tablePath = the common crawl index's s3 bucket
      * viewName = name of common crawl index
@@ -75,6 +87,11 @@ object CCIdxMain {
         val spark = SparkSession.builder.master("local[*]")
             .config(conf)
             .getOrCreate
+
+        val config = spark.sparkContext.hadoopConfiguration
+            config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
+            config.set("fs.s3a.awsAccessKeyId", access_key)
+            config.set("fs.s3a.awsSecretAccessKey", access_secret)
         /**
          * loading the index to dataframe(df)
          */
@@ -105,6 +122,9 @@ object CCIdxMain {
 
 object TestExtract {
 
+    Logger.getLogger("org").setLevel(Level.ERROR)
+    Logger.getLogger("akka").setLevel(Level.ERROR)
+
     def loadWARC(path: String): RDD[WarcRecord] = {
         return ArchiveSpark.load(WarcSpec.fromFiles(path))
     }
@@ -116,12 +136,17 @@ object TestExtract {
         val spark = SparkSession.builder.master("local[*]")
             .config(CCIdxMain.conf)
             .getOrCreate
-        /**
-         * Creating an RDD of your downloaded WARC file
-         */
-        val rdd = loadWARC("/Users/grant/downloads/CC-MAIN-20180116070444-20180116090444-00000.warc")
 
-        println(rdd.peekJson)
+        println(CCIdxMain.access_key)
+        println(CCIdxMain.access_secret)
+
+        val config = spark.sparkContext.hadoopConfiguration
+        config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
+        config.set("fs.s3a.awsAccessKeyId", CCIdxMain.access_key)
+        config.set("fs.s3a.awsSecretAccessKey", CCIdxMain.access_secret)
+
+        val rdd = loadWARC("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046157039.99/warc/CC-MAIN-20210805193327-20210805223327-00719.warc.gz").enrich(HtmlText.ofEach(Html.all("a")))
+        println(rdd.take(1)(0).toJsonString)
         
         spark.stop
 
