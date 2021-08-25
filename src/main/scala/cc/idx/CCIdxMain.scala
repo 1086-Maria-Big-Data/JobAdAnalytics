@@ -19,8 +19,18 @@ import org.apache.hadoop.fs.FileSystem
 import java.net.URI
 import org.apache.hadoop.fs.Path
 
-object CCIdxMain {
+/**
+ * CCIdxMain is used for querying the index table from common crawl's S3 bucket
+ *
+ * TestExtract is an example of how to load WARC files
+ */
 
+object CCIdxMain {
+    /**
+     * tablePath = the common crawl index's s3 bucket
+     * viewName = name of common crawl index
+     * schema = table structure for index
+     */
     val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc"
     val viewName = "ccindex"
     val schema = StructType(Array(
@@ -56,7 +66,9 @@ object CCIdxMain {
         StructField("crawl", StringType, true),
         StructField("subset", StringType, true)
     ))
-
+    /**
+     * Setting spark configurations
+     */
     val conf = new SparkConf()
         .setAppName(this.getClass.getCanonicalName())
         .set("spark.hadoop.parquet.enable.dictionary", "true")
@@ -70,17 +82,31 @@ object CCIdxMain {
         .set("fs.s3.awsSecretAccessKey", "KXHNFkMNlDV/5Y64KpjAG/J2bVnEfw9og3/GWkuI")
 
     def main(args: Array[String]): Unit = {
-
+        /**
+         * Building the spark session
+         */
         val spark = SparkSession.builder.master("local[*]")
             .config(conf)
             .getOrCreate
-
+        /**
+         * loading the index to dataframe(df)
+         */
         val df = spark.read.schema(schema).parquet(tablePath)
         df.printSchema()
+        /**
+         * Creating SQL query to query the index dataframe
+         */
         //val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
         val sqlQuery = "Select url, content_languages From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url_host_tld=\'va\'"
+
+        /**
+         * Creating a SQL table from the index dataframe
+         */
         df.createOrReplaceTempView(viewName)
 
+        /**
+         * Describing the table schema and running the query
+         */
         spark.sql("describe formatted " + viewName).show(10000)
         spark.sql(sqlQuery).show(100)
 
@@ -100,7 +126,9 @@ object TestExtract {
     }
 
     def main(args: Array[String]): Unit = {
-
+        /**
+         * Building the spark session
+         */
         val spark = SparkSession.builder.master("local[*]")
             .config(CCIdxMain.conf)
             .getOrCreate
@@ -124,6 +152,9 @@ object TestExtract {
         // val spec = HdfsFileSpec("/crawl-data/CC-MAIN-2021-31/segments/1627046149929.88/warc/*")
 
         // val x = spec.load(spark.sparkContext, 1).take(50).foreach(x => println(spec.parse(x).get.toJsonString))
+        /**
+         * Creating an RDD of your downloaded WARC file
+         */
 
         val rdd2 = loadWARC("/Users/vincey/downloads/CC-MAIN-20210723143921-20210723173921-00000.warc.gz").enrich(HtmlText.ofEach(Html.all("a")))
         println(rdd2.take(1)(0).toJsonString)
