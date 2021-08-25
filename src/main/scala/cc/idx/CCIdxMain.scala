@@ -67,7 +67,7 @@ object CCIdxMain {
       .set("spark.sql.parquet.filterPushdown", "true")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.executor.userClassPathFirst", "true")
-//Warning main method will take about 30 minutes to run, we should try to optimize
+//Warning main method will take about 40 minutes to run, we should try to optimize
     def main(args: Array[String]): Unit = {
         /**
          * Building the spark session
@@ -84,7 +84,7 @@ object CCIdxMain {
          * Creating SQL query to query the index dataframe
          */
         //val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' and url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\' and content_languages=\'eng\' and url_host_tld in (\'com\',\'net\',\'org\',\'edu\')"
-        val sqlQuery = "Select url, warc_filename From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And content_languages=\'eng\' AND url_host_tld=\'com\'"
+        val sqlQuery = "Select url, warc_filename, warc_record_offset, warc_record_length From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And content_languages=\'eng\' AND url_host_tld in (\'com\',\'net\',\'org\',\'edu\')"
 
         /**
          * Creating a SQL table from the index dataframe
@@ -98,7 +98,7 @@ object CCIdxMain {
         val firstFilter = spark.sql(sqlQuery)
           firstFilter.show(100)
         firstFilter.createOrReplaceTempView("firstFilter")
-        //Second Query to filter for job sites
+        //Second Query to filter for job sites (this will need to be improved)
         val query2 = "SELECT * From firstFilter where url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
         val jobsFilter = spark.sql(query2)
         jobsFilter.show(10)
