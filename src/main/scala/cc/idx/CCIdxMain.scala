@@ -11,6 +11,8 @@ import org.archive.archivespark.specific.warc._
 
 /**
  * CCIdxMain is used for querying the index table from common crawl's S3 bucket
+ *
+ * TestExtract is an example of how to load WARC files
  */
 
 object CCIdxMain {
@@ -108,12 +110,16 @@ object TestExtract {
     }
 
     def main(args: Array[String]): Unit = {
-
+        /**
+         * Building the spark session
+         */
         val spark = SparkSession.builder.master("local[*]")
             .config(CCIdxMain.conf)
             .getOrCreate
-
-        val rdd = loadWARC("/Users/vincey/downloads/CC-MAIN-20180116070444-20180116090444-00000.warc")
+        /**
+         * Creating an RDD of your downloaded WARC file
+         */
+        val rdd = loadWARC("/Users/grant/downloads/CC-MAIN-20180116070444-20180116090444-00000.warc")
 
         println(rdd.peekJson)
         
