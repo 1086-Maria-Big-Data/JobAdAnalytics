@@ -108,6 +108,7 @@ object TestExtract {
         /**
          * Building the spark session
          */
+
         val spark = AppSparkSession()
 
         val rdd = loadWARC("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046157039.99/warc/CC-MAIN-20210805193327-20210805223327-00719.warc.gz").enrich(HtmlText.ofEach(Html.all("a")))
