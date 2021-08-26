@@ -1,5 +1,5 @@
 package cc.queries
 
-object infrequentJobs {
+object infrequentJobs extends Queries {
     
 }

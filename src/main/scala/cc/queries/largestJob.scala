@@ -1,5 +1,5 @@
 package cc.queries
 
-object largestJob {
+object largestJob extends Queries {
     
 }

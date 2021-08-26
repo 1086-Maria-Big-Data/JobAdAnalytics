@@ -1,5 +1,5 @@
 package cc.queries
 
-object jobSpikes {
+object jobSpikes extends Queries {
     
 }

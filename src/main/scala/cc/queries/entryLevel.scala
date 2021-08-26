@@ -1,5 +1,5 @@
 package cc.queries
 
-object entryLevel {
+object entryLevel extends Queries {
     
 }
