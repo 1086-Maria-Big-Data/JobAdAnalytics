@@ -54,7 +54,7 @@ object IndexUtil {
     ))
 
     def load(session: SparkSession): DataFrame = {
-        return session.read.load(tablePath)
+        return session.read.schema(IndexUtil.schema).parquet(tablePath)
     }
 
     def write(df: DataFrame, path: String, include_header: Boolean=false, single_file: Boolean=true): Unit = {
