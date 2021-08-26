@@ -27,6 +27,8 @@ object AppSparkSession {
             .set("spark.sql.parquet.filterPushdown", "true")
             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
             .set("spark.executor.userClassPathFirst", "true")
+            .set("spark.rdd.compress", "true")
+
 
         val props = Util.loadConfig()
         val access_key = props("AWS_ACCESS_KEY_ID")
