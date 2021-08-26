@@ -12,6 +12,7 @@ import org.archive.archivespark.specific.raw._
 import org.archive.archivespark.functions._
 
 import spark.session.AppSparkSession
+import org.archive.archivespark.specific.warc.specs.WarcHdfsCdxRddSpec
 
 /**
  * CCIdxMain is used for querying the index table from common crawl's S3 bucket
@@ -66,6 +67,7 @@ object CCIdxMain {
     
 
     def main(args: Array[String]): Unit = {
+        import org.archive.archivespark.sparkling.cdx.CdxRecord
         /**
          * Building the spark session
          */
@@ -78,8 +80,8 @@ object CCIdxMain {
         /**
          * Creating SQL query to query the index dataframe
          */
-        //val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
-        val sqlQuery = "Select url, content_languages From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url_host_tld=\'va\'"
+        val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
+        // val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url_host_tld=\'va\'"
 
         /**
          * Creating a SQL table from the index dataframe
@@ -90,9 +92,19 @@ object CCIdxMain {
          * Describing the table schema and running the query
          */
         spark.sql("describe formatted " + viewName).show(10000)
-        spark.sql(sqlQuery).show(100)
+        
 
-        spark.stop
+        /**
+          * Testing capacity to manually make a CdxRecord from ccindex table to select specific warc records
+          */
+        val forCdxRec = df.select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","warc_record_length","warc_record_offset","warc_filename").where("content_mime_type = 'text/html'").take(8)
+        val arCdx = forCdxRec.map(c => (new CdxRecord(c.getAs[String](0),c(1).toString,c.getAs[String](2),c.getAs[String](3),c.getAs[Short](4).toInt,c.getAs[String](5),"-","-",c.getAs[Integer](6).toLong, Seq[String](c(7).toString,c.getAs[String](8))),"s3a://commoncrawl/"))
+        val rddCdx = spark.sparkContext.parallelize(arCdx)
+
+        val rddWarc = ArchiveSpark.load(WarcSpec.fromFiles(rddCdx))
+        rddWarc.collect().foreach(warc => println(warc.toJsonString))
+
+        //spark.stop
 
         System.exit(0)
     }
@@ -111,8 +123,10 @@ object TestExtract {
 
         val spark = AppSparkSession()
 
-        val rdd = loadWARC("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046157039.99/warc/CC-MAIN-20210805193327-20210805223327-00719.warc.gz").enrich(HtmlText.ofEach(Html.all("a")))
-        println(rdd.take(1)(0).toJsonString)
+        val rdd = loadWARC("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046157039.99/warc/CC-MAIN-20210805193327-20210805223327-00719.warc.gz")
+        .take(3).foreach(warc => println(warc.toCdxString))
+        //.enrich(HtmlText.ofEach(Html.all("a")))
+        //println(rdd.take(1)(0).toJsonString)
         
         spark.stop
 
