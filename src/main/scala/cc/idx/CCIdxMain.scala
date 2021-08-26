@@ -11,10 +11,7 @@ import org.archive.archivespark.specific.warc._
 import org.archive.archivespark.specific.raw._
 import org.archive.archivespark.functions._
 
-import org.apache.log4j.Logger
-import org.apache.log4j.Level
-
-import appUtil.Util
+import spark.session.AppSparkSession
 
 /**
  * CCIdxMain is used for querying the index table from common crawl's S3 bucket
@@ -23,11 +20,6 @@ import appUtil.Util
  */
 
 object CCIdxMain {
-
-    val props = Util.loadConfig()
-    val access_key = props("AWS_ACCESS_KEY_ID")
-    val access_secret = props("AWS_SECRET_ACCESS_KEY")
-
     /**
      * tablePath = the common crawl index's s3 bucket
      * viewName = name of common crawl index
@@ -71,27 +63,13 @@ object CCIdxMain {
     /**
      * Setting spark configurations
      */
-    val conf = new SparkConf()
-        .setAppName(this.getClass.getCanonicalName())
-        .set("spark.hadoop.parquet.enable.dictionary", "true")
-        .set("spark.hadoop.parquet.enable.summary-metadata", "true")
-        .set("spark.sql.hive.metastorePartitionPruning", "true")
-        .set("spark.sql.parquet.filterPushdown", "true")
-        .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-        .set("spark.executor.userClassPathFirst", "true")
+    
 
     def main(args: Array[String]): Unit = {
         /**
          * Building the spark session
          */
-        val spark = SparkSession.builder.master("local[*]")
-            .config(conf)
-            .getOrCreate
-
-        val config = spark.sparkContext.hadoopConfiguration
-            config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
-            config.set("fs.s3a.awsAccessKeyId", access_key)
-            config.set("fs.s3a.awsSecretAccessKey", access_secret)
+        val spark = AppSparkSession()
         /**
          * loading the index to dataframe(df)
          */
@@ -122,9 +100,6 @@ object CCIdxMain {
 
 object TestExtract {
 
-    Logger.getLogger("org").setLevel(Level.ERROR)
-    Logger.getLogger("akka").setLevel(Level.ERROR)
-
     def loadWARC(path: String): RDD[WarcRecord] = {
         return ArchiveSpark.load(WarcSpec.fromFiles(path))
     }
@@ -133,17 +108,7 @@ object TestExtract {
         /**
          * Building the spark session
          */
-        val spark = SparkSession.builder.master("local[*]")
-            .config(CCIdxMain.conf)
-            .getOrCreate
-
-        println(CCIdxMain.access_key)
-        println(CCIdxMain.access_secret)
-
-        val config = spark.sparkContext.hadoopConfiguration
-        config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
-        config.set("fs.s3a.awsAccessKeyId", CCIdxMain.access_key)
-        config.set("fs.s3a.awsSecretAccessKey", CCIdxMain.access_secret)
+        val spark = AppSparkSession()
 
         val rdd = loadWARC("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046157039.99/warc/CC-MAIN-20210805193327-20210805223327-00719.warc.gz").enrich(HtmlText.ofEach(Html.all("a")))
         println(rdd.take(1)(0).toJsonString)
