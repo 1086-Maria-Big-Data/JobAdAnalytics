@@ -1,5 +1,5 @@
 package cc.queries
 
-object techJobs {
+object techJobs extends Queries {
     
 }
