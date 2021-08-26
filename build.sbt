@@ -12,3 +12,5 @@ libraryDependencies ++= Seq(
         "org.apache.spark" %% "spark-sql" % "2.4.7",
         // "com.github.helgeho" %% "archivespark" % "3.0.1"
 )
+
+trapExit := false
