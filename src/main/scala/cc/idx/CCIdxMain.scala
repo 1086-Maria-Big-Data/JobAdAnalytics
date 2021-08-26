@@ -2,14 +2,11 @@ package cc.idx
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Dataset, DataFrame}
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.SparkConf
 import org.apache.spark.sql.types.{StructType, StructField, IntegerType, TimestampType, StringType, ShortType}
 
 import org.archive.archivespark._
 import org.archive.archivespark.specific.warc._
-import org.archive.archivespark.specific.raw._
-import org.archive.archivespark.functions._
+import org.archive.archivespark.specific.warc.functions._
 
 import spark.session.AppSparkSession
 
@@ -25,7 +22,7 @@ object CCIdxMain {
      * viewName = name of common crawl index
      * schema = table structure for index
      */
-    val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc"
+    val tablePath = "s3://commoncrawl/cc-index/table/cc-main/warc"
     val viewName = "ccindex"
     val schema = StructType(Array(
         StructField("url_surtkey", StringType, true),
@@ -111,8 +108,7 @@ object TestExtract {
 
         val spark = AppSparkSession()
 
-        val rdd = loadWARC("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046157039.99/warc/CC-MAIN-20210805193327-20210805223327-00719.warc.gz").enrich(HtmlText.ofEach(Html.all("a")))
-        println(rdd.take(1)(0).toJsonString)
+        val rdd = loadWARC("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046157039.99/warc/CC-MAIN-20210805193327-20210805223327-00719.warc.gz")
         
         spark.stop
 
