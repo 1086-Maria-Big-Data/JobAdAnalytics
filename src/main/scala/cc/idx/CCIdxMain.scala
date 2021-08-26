@@ -43,33 +43,36 @@ object CCIdxMain {
         /**
          * Creating SQL query to query the index dataframe
          */
-        val sqlQuery = "Select warc_filename, warc_record_offset, warc_record_length From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
+        // val sqlQuery = "Select warc_filename, warc_record_offset, warc_record_length From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
         // val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url_host_tld=\'va\'"
 
         /**
          * Creating a SQL table from the index dataframe
          */
-        df.createOrReplaceTempView(viewName)
+        // df.createOrReplaceTempView(viewName)
 
         /**
          * Describing the table schema and running the query
          */
-        spark.sql("describe formatted " + viewName).show(10000)
+        // spark.sql("describe formatted " + viewName).show(10000)
 
-        spark.sql(sqlQuery).show(10, false)
+        // spark.sql(sqlQuery).show(10, false)
         
 
         /**
           * Testing capacity to manually make a CdxRecord from ccindex table to select specific warc records
           */
-        // val forCdxRec = df.select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","warc_record_length","warc_record_offset","warc_filename").where("content_mime_type = 'text/html'").take(8)
-        // val arCdx = forCdxRec.map(c => (new CdxRecord(c.getAs[String](0),c(1).toString,c.getAs[String](2),c.getAs[String](3),c.getAs[Short](4).toInt,c.getAs[String](5),"-","-",c.getAs[Integer](6).toLong, Seq[String](c(7).toString,c.getAs[String](8))),"s3a://commoncrawl/"))
-        // val rddCdx = spark.sparkContext.parallelize(arCdx)
+        val forCdxRec = df.select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","fetch_redirect","warc_segment","warc_record_length","warc_record_offset","warc_filename").where("crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\' AND content_mime_type = 'text/html'")
+        val rddCdx = forCdxRec.rdd.map(c => (new CdxRecord(c.getAs[String](0),c(1).toString,c.getAs[String](2),c.getAs[String](3),c.getAs[Short](4).toInt,c.getAs[String](5),c.getAs[String](6),c.getAs[String](7),c.getAs[Integer](8).toLong, Seq[String](c(9).toString,c.getAs[String](10))),"s3a://commoncrawl/"))
 
-        // val rddWarc = ArchiveSpark.load(WarcSpec.fromFiles(rddCdx))
-        // rddWarc.collect().foreach(warc => println(warc.toJsonString))
+        val rddWarc = ArchiveSpark.load(WarcSpec.fromFiles(rddCdx))
+                .enrich(WarcPayload)
+                .enrich(cc.warc.WarcUtil.titleTextEnricher)
+                .enrich(cc.warc.WarcUtil.bodyTextEnricher)
 
-        //spark.stop
+        rddWarc.map(warc => cc.warc.SuperWarc(warc)).take(8).foreach(warc => println(warc.payload()))
+
+        spark.stop
 
         System.exit(0)
     }
