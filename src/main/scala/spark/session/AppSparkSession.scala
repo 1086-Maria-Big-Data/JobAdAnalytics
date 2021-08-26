@@ -6,6 +6,8 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkConf
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
+import org.apache.spark.deploy.SparkHadoopUtil
+import _root_.org.apache.hadoop.fs.FileSystem
 
 
 object AppSparkSession {
@@ -38,10 +40,12 @@ object AppSparkSession {
             config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
             config.set("fs.s3a.awsAccessKeyId", access_key)
             config.set("fs.s3a.awsSecretAccessKey", access_secret)
-            config.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
-            config.set("fs.s3.awsAccessKeyId", access_key)
-            config.set("fs.s3.awsSecretAccessKey", access_secret)
-        
+            // config.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
+            // config.set("fs.s3.awsAccessKeyId", access_key)
+            // config.set("fs.s3.awsSecretAccessKey", access_secret)
+
+        SparkHadoopUtil.get.conf.set(FileSystem.FS_DEFAULT_NAME_KEY, "s3a://")
+
         spark
     }
 }
