@@ -29,7 +29,7 @@ object CCIdxMain {
      * tablePath = the common crawl index's s3 bucket
      * viewName = name of common crawl index
      */
-    val tablePath = "s3://commoncrawl/cc-index/table/cc-main/warc"
+    val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc"
     val viewName = "ccindex"
     /**
      * Setting spark configurations
@@ -56,7 +56,7 @@ object CCIdxMain {
         /**
          * Creating a SQL table from the index dataframe
          */
-        // df.createOrReplaceTempView(viewName)
+        df.createOrReplaceTempView(viewName)
 
         /**
          * Describing the table schema and running the query
@@ -70,9 +70,9 @@ object CCIdxMain {
           * Testing capacity to manually make a CdxRecord from ccindex table to select specific warc records
           */
 
-        val forCdxRec = df
-            .select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","fetch_redirect","warc_segment","warc_record_length","warc_record_offset","warc_filename")
-            .where("crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\' AND content_mime_type = 'text/html'")
+        // val forCdxRec = df
+        //     .select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","fetch_redirect","warc_segment","warc_record_length","warc_record_offset","warc_filename")
+        //     .where("crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\' AND content_mime_type = 'text/html'")
 
         //val rddWarc = WarcUtil.loadFiltered(forCdxRec).foreach(x => x.dataLoad(ByteLoad).)
 
@@ -80,6 +80,13 @@ object CCIdxMain {
             // .take(1)
             // .map(warc => cc.warc.SuperWarc(warc))
             // .foreach(warc => println(warc.toJsonString()))
+        
+        val forCdxRec = spark.sql("SELECT url_surtkey, fetch_time, url, content_mime_type, fetch_status, content_digest, fetch_redirect, warc_segment, warc_record_length, warc_record_offset, warc_filename"
+            + " from " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\' LIMIT 1")
+
+        val warc_rdd = WarcUtil.loadFiltered(forCdxRec)
+
+        warc_rdd.map(warc => SuperWarc(warc)).take(5).foreach(warc => println(warc.payload()))
 
         spark.stop
 
