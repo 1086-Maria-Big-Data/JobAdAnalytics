@@ -52,11 +52,15 @@ object WarcUtil {
             .rdd
             .map((_, root_path))
 
+        if (enrich_payload)
+            return ArchiveSpark
+                .load(WarcSpec.fromFiles(rdd_cdx))
+                .enrich(WarcPayload)
+                .enrich(cc.warc.WarcUtil.titleTextEnricher)
+                .enrich(cc.warc.WarcUtil.bodyTextEnricher)
+
         return ArchiveSpark
             .load(WarcSpec.fromFiles(rdd_cdx))
-            .enrich(WarcPayload)
-            .enrich(cc.warc.WarcUtil.titleTextEnricher)
-            .enrich(cc.warc.WarcUtil.bodyTextEnricher)
     }
 }
 
