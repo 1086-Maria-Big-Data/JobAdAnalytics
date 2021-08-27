@@ -82,7 +82,7 @@ object CCIdxMain {
             // .foreach(warc => println(warc.toJsonString()))
         
         val forCdxRec = spark.sql("SELECT url_surtkey, fetch_time, url, content_mime_type, fetch_status, content_digest, fetch_redirect, warc_segment, warc_record_length, warc_record_offset, warc_filename"
-            + " from " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\' LIMIT 1")
+            + " from " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'")
 
         val warc_rdd = WarcUtil.loadFiltered(forCdxRec)
 

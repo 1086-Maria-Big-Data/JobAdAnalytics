@@ -43,6 +43,7 @@ object AppSparkSession {
             config.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
             config.set("fs.s3.awsAccessKeyId", access_key)
             config.set("fs.s3.awsSecretAccessKey", access_secret)
+            config.set("fs.defaultFS", "s3a://commoncrawl/")
 
         val sparkhadoopconfig = SparkHadoopUtil.get.conf
             sparkhadoopconfig.set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
@@ -51,8 +52,7 @@ object AppSparkSession {
             sparkhadoopconfig.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
             sparkhadoopconfig.set("fs.s3.awsAccessKeyId", access_key)
             sparkhadoopconfig.set("fs.s3.awsSecretAccessKey", access_secret)
-
-        sparkhadoopconfig.set(FileSystem.FS_DEFAULT_NAME_KEY, "s3a://commoncrawl/")
+            sparkhadoopconfig.set("fs.defaultFS", "s3a://commoncrawl/")
 
         spark
     }
