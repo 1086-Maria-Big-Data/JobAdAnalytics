@@ -2,7 +2,7 @@ package cc.idx
 
 import org.apache.spark.sql.{DataFrame, Column}
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.types.{StructType, StructField, IntegerType, TimestampType, StringType, ShortType}
+import org.apache.spark.sql.types.{StructType, StructField, IntegerType, LongType, StringType, TimestampType, ShortType}
 
 object IndexUtil {
 

@@ -6,22 +6,61 @@ import org.archive.archivespark.specific.warc._
 import org.archive.archivespark.specific.warc.functions._
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, Column}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.Encoders
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{StringType, IntegerType, LongType}
+
+import org.archive.archivespark.sparkling.cdx.CdxRecord
 
 object WarcUtil {
 
     val titleTextEnricher = HtmlText.of(Html.first("title"))
     val bodyTextEnricher = HtmlText.of(Html.first("body"))
 
+    implicit val enc = Encoders.product[CdxRecord]
+
     def load(path: String, enrich_payload: Boolean=true): RDD[WarcRecord] = {
         if (enrich_payload)
-            return ArchiveSpark.load(WarcSpec.fromFiles(path))
+            return ArchiveSpark
+                .load(WarcSpec.fromFiles(path))
                 .enrich(WarcPayload)
                 .enrich(titleTextEnricher)
                 .enrich(bodyTextEnricher)
 
-        return ArchiveSpark.load(WarcSpec.fromFiles(path))
+        return ArchiveSpark
+            .load(WarcSpec.fromFiles(path))
+    }
+
+    def loadFiltered(filtered_df: DataFrame, root_path: String="s3a://commoncrawl/", enrich_payload: Boolean=true): RDD[WarcRecord] = {
+
+        val rdd_cdx = filtered_df
+            .withColumn("meta", lit("-"))
+            .withColumn("additionalFields", array(col("warc_record_offset").cast(StringType), col("warc_filename")))
+            .select(
+                col("url_surtkey").as("surtUrl"), 
+                col("fetch_time").as("timestamp").cast(StringType), 
+                col("url").as("originalUrl"), 
+                col("content_mime_type").as("mime"), 
+                col("fetch_status").as("status").cast(IntegerType), 
+                col("content_digest").as("digest"), 
+                col("fetch_redirect").as("redirectUrl"), 
+                col("meta"),
+                col("warc_record_length").as("compressedSize").cast(LongType), 
+                col("additionalFields"))
+            .as[CdxRecord]
+            .rdd
+            .map((_, root_path))
+
+        if (enrich_payload)
+            return ArchiveSpark
+                .load(WarcSpec.fromFiles(rdd_cdx))
+                .enrich(WarcPayload)
+                .enrich(cc.warc.WarcUtil.titleTextEnricher)
+                .enrich(cc.warc.WarcUtil.bodyTextEnricher)
+
+        return ArchiveSpark
+            .load(WarcSpec.fromFiles(rdd_cdx))
     }
 }
 
