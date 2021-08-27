@@ -46,43 +46,13 @@ object CCIdxMain {
          * loading the index to dataframe(df)
          */
         val df = spark.read.schema(IndexUtil.schema).parquet(tablePath)
-
-        /**
-         * Creating SQL query to query the index dataframe
-         */
-        // val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
-        // val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url_host_tld=\'va\'"
-
-        /**
-         * Creating a SQL table from the index dataframe
-         */
-        df.createOrReplaceTempView(viewName)
-
-        /**
-         * Describing the table schema and running the query
-         */
-        // spark.sql("describe formatted " + viewName).show(10000)
-
-        // spark.sql(sqlQuery).show(10, false)
         
-
         /**
           * Testing capacity to manually make a CdxRecord from ccindex table to select specific warc records
           */
-
-        // val forCdxRec = df
-        //     .select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","fetch_redirect","warc_segment","warc_record_length","warc_record_offset","warc_filename")
-        //     .where("crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\' AND content_mime_type = 'text/html'")
-
-        //val rddWarc = WarcUtil.loadFiltered(forCdxRec).foreach(x => x.dataLoad(ByteLoad).)
-
-        // rddWarc
-            // .take(1)
-            // .map(warc => cc.warc.SuperWarc(warc))
-            // .foreach(warc => println(warc.toJsonString()))
         
         val forCdxRec = spark.sql("SELECT url_surtkey, fetch_time, url, content_mime_type, fetch_status, content_digest, fetch_redirect, warc_segment, warc_record_length, warc_record_offset, warc_filename"
-            + " from " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\' LIMIT 1")
+            + " from " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'")
 
         val warc_rdd = WarcUtil.loadFiltered(forCdxRec)
 
@@ -103,23 +73,6 @@ object TestExtract {
 
         val spark = AppSparkSession()
 
-        // val cdx_path = "/Users/vincey/downloads/def.cdx"
-        // val root_path = "/Users/vincey/downloads"
-
-        // val rdd_cdx = spark
-        //     .sparkContext.textFile(cdx_path)
-        //     .map(x => x.split(" "))
-        //     .map(x => CdxRecord(x(0), x(1), x(2), x(3), x(4).toInt, x(5), x(6), x(7), x(8).toLong, Seq(x(9), x(10))))
-        //     .map((_, root_path))
-
-        // val warc_rdd = ArchiveSpark
-        //         .load(WarcSpec.fromFiles(rdd_cdx))
-        //         .enrich(WarcPayload)
-        //         .enrich(cc.warc.WarcUtil.titleTextEnricher)
-        //         .enrich(cc.warc.WarcUtil.bodyTextEnricher)
-
-        // println(warc_rdd.peekJson)
-
         val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc"
 
         val df = spark.read.schema(IndexUtil.schema).parquet(tablePath)
@@ -127,23 +80,12 @@ object TestExtract {
         val forCdxRec = df
             .select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","fetch_redirect","warc_segment","warc_record_length","warc_record_offset","warc_filename")
             .where("crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'")
-            //.show(1)
-            // .limit(1)
 
-        // val forCdxRec = spark.read.option("header", "true").csv("/Users/vincey/downloads/df.csv").withColumn("fetch_redirect", lit(""))
 
         val warc_rdd = WarcUtil.loadFiltered(forCdxRec)
 
         warc_rdd.take(1).foreach(x => println(x.toJsonString))
 
-        // implicit val enc = org.apache.spark.sql.Encoders.product[CdxRecord]
-        // import org.apache.hadoop.fs.{FileSystem, Path}
-        // import org.apache.spark.deploy.SparkHadoopUtil
-
-        // println(FileSystem.get(SparkHadoopUtil.get.conf).getUri.toString)
-        // println(new Path("s3a://commoncrawl/crawl-data/CC-MAIN-2021-10/segments/1614178374217.78/warc/CC-MAIN-20210306004859-20210306034859-00224.warc.gz").getFileSystem(SparkHadoopUtil.get.conf).getUri.toString)
-
-        
         spark.stop
 
         System.exit(0)
