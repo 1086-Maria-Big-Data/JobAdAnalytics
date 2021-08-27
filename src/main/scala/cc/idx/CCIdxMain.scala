@@ -5,6 +5,7 @@ import cc.warc._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Dataset, DataFrame}
 import org.apache.spark.sql.types.{StructType, StructField, IntegerType, TimestampType, StringType, ShortType}
+import org.apache.spark.sql.functions._
 
 import org.archive.archivespark._
 import org.archive.archivespark.specific.warc._
@@ -49,7 +50,7 @@ object CCIdxMain {
         /**
          * Creating SQL query to query the index dataframe
          */
-        // val sqlQuery = "Select warc_filename, warc_record_offset, warc_record_length From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
+        // val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'"
         // val sqlQuery = "Select * From " + viewName + " Where crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url_host_tld=\'va\'"
 
         /**
@@ -118,17 +119,23 @@ object TestExtract {
 
         val forCdxRec = df
             .select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","fetch_redirect","warc_segment","warc_record_length","warc_record_offset","warc_filename")
-            .where("crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url_host_tld=\'va\'")
-        
+            .where("crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'")
+            //.show(1)
+            // .limit(1)
+
+        // val forCdxRec = spark.read.option("header", "true").csv("/Users/vincey/downloads/df.csv").withColumn("fetch_redirect", lit(""))
+
         val warc_rdd = WarcUtil.loadFiltered(forCdxRec)
 
-        val stream = warc_rdd.take(1)(0).access[String]{s =>
-            var httpResponse: InputStream = null
-            val bytes = Array[Byte]()
-            s.payload.read(bytes)
-            bytes.foreach(println)
-            ""
-        }
+        warc_rdd.take(1).foreach(x => println(x.toJsonString))
+
+        // implicit val enc = org.apache.spark.sql.Encoders.product[CdxRecord]
+        // import org.apache.hadoop.fs.{FileSystem, Path}
+        // import org.apache.spark.deploy.SparkHadoopUtil
+
+        // println(FileSystem.get(SparkHadoopUtil.get.conf).getUri.toString)
+        // println(new Path("s3a://commoncrawl/crawl-data/CC-MAIN-2021-10/segments/1614178374217.78/warc/CC-MAIN-20210306004859-20210306034859-00224.warc.gz").getFileSystem(SparkHadoopUtil.get.conf).getUri.toString)
+
         
         spark.stop
 
