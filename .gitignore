@@ -10,5 +10,4 @@ target/*
 
 app.config
 
-generic.properties
 .DS_Store 
