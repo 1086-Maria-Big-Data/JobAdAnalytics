@@ -1,5 +1,7 @@
 package cc.idx
 
+import cc.warc._
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Dataset, DataFrame}
 import org.apache.spark.sql.types.{StructType, StructField, IntegerType, TimestampType, StringType, ShortType}
@@ -9,7 +11,6 @@ import org.archive.archivespark.specific.warc._
 import org.archive.archivespark.specific.warc.functions._
 
 import spark.session.AppSparkSession
-import org.archive.archivespark.specific.warc.specs.WarcHdfsCdxRddSpec
 
 /**
  * CCIdxMain is used for querying the index table from common crawl's S3 bucket
@@ -22,7 +23,7 @@ object CCIdxMain {
      * tablePath = the common crawl index's s3 bucket
      * viewName = name of common crawl index
      */
-    val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc"
+    val tablePath = "s3://commoncrawl/cc-index/table/cc-main/warc"
     val viewName = "ccindex"
     /**
      * Setting spark configurations
@@ -62,15 +63,20 @@ object CCIdxMain {
         /**
           * Testing capacity to manually make a CdxRecord from ccindex table to select specific warc records
           */
-        val forCdxRec = df.select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","fetch_redirect","warc_record_length","warc_record_offset","warc_filename").where("crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\' AND content_mime_type = 'text/html'")
-        val rddCdx = forCdxRec.rdd.map(c => (new CdxRecord(c.getAs[String](0),c(1).toString,c.getAs[String](2),c.getAs[String](3),c.getAs[Short](4).toInt,c.getAs[String](5),if(c == null) "-" else c.getAs[String](6),"-",c.getAs[Integer](7).toLong, Seq[String](c(8).toString,c.getAs[String](9))),"s3a://commoncrawl/"))
 
-        val rddWarc = ArchiveSpark.load(WarcSpec.fromFiles(rddCdx))
+        val forCdxRec = df
+            .select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","fetch_redirect","warc_segment","warc_record_length","warc_record_offset","warc_filename")
+            .where("crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\' AND content_mime_type = 'text/html'")
+
+        val rddWarc = WarcUtil.loadFiltered(forCdxRec)
                 .enrich(WarcPayload)
                 .enrich(cc.warc.WarcUtil.titleTextEnricher)
                 .enrich(cc.warc.WarcUtil.bodyTextEnricher)
 
-        rddWarc.take(8).map(warc => cc.warc.SuperWarc(warc)).foreach(warc => println(warc.payload()))
+        rddWarc
+            .take(4)
+            .map(warc => cc.warc.SuperWarc(warc))
+            .foreach(warc => println(warc.toJsonString()))
 
         spark.stop
 
