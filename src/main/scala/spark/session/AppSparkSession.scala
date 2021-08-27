@@ -29,8 +29,8 @@ object AppSparkSession {
             .set("spark.executor.userClassPathFirst", "true")
 
         val props = Util.loadConfig()
-        val access_key = props("AWS_ACCESS_KEY_ID")
-        val access_secret = props("AWS_SECRET_ACCESS_KEY")
+        val access_key = props.getProperty("AWS_ACCESS_KEY_ID")
+        val access_secret = props.getProperty("AWS_SECRET_ACCESS_KEY")
 
         val spark = SparkSession.builder.master("local[*]")
                 .config(conf)
