@@ -40,11 +40,11 @@ object AppSparkSession {
             config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
             config.set("fs.s3a.awsAccessKeyId", access_key)
             config.set("fs.s3a.awsSecretAccessKey", access_secret)
-            config.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
-            config.set("fs.s3.awsAccessKeyId", access_key)
-            config.set("fs.s3.awsSecretAccessKey", access_secret)
+            // config.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
+            // config.set("fs.s3.awsAccessKeyId", access_key)
+            // config.set("fs.s3.awsSecretAccessKey", access_secret)
 
-        SparkHadoopUtil.get.conf.set(FileSystem.FS_DEFAULT_NAME_KEY, "s3a://")
+        SparkHadoopUtil.get.conf.set(FileSystem.FS_DEFAULT_NAME_KEY, "s3a://commoncrawl/")
 
         spark
     }
