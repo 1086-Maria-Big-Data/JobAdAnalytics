@@ -9,3 +9,5 @@ target/*
 .bloop/*
 
 app.config
+
+/src/main/resources/dev/*
