@@ -27,6 +27,8 @@ object AppSparkSession {
             .set("spark.sql.parquet.filterPushdown", "true")
             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
             .set("spark.executor.userClassPathFirst", "true")
+            .set("spark.rdd.compress", "true")
+
 
         val props = Util.loadConfig()
         val access_key = props.getProperty("AWS_ACCESS_KEY_ID")
@@ -46,17 +48,6 @@ object AppSparkSession {
             sparkhadoopconfig.set("fs.s3a.secret.key", access_secret)
             sparkhadoopconfig.set("fs.defaultFS", "s3a://commoncrawl/")
 
-        import org.apache.hadoop.fs.Path
-        val path = new Path("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046149929.88/warc/CC-MAIN-20210723143921-20210723173921-00000.warc.gz")
-        println(FileSystem.get(SparkHadoopUtil.get.conf).getUri().toString())
-        println(FileSystem.get(sparkhadoopconfig).getUri().toString())
-        println(FileSystem.get(spark.sparkContext.hadoopConfiguration).getUri().toString())
-        println(FileSystem.get(config).getUri().toString())
-
-        println(path.getFileSystem(SparkHadoopUtil.get.conf).getUri().toString())
-        println(path.getFileSystem(sparkhadoopconfig).getUri().toString())
-        println(path.getFileSystem(spark.sparkContext.hadoopConfiguration).getUri().toString())
-        println(path.getFileSystem(config).getUri().toString())
         spark
     }
 }

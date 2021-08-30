@@ -14,4 +14,4 @@ libraryDependencies ++= Seq(
         "com.github.helgeho" %% "archivespark" % "3.0.1"
 )
 
-trapExit := false
+//trapExit := false
