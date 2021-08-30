@@ -9,3 +9,6 @@ target/*
 .bloop/*
 
 app.config
+
+generic.properties
+.DS_Store
