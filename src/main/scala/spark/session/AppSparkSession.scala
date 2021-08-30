@@ -7,7 +7,6 @@ import org.apache.spark.SparkConf
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
 import org.apache.spark.deploy.SparkHadoopUtil
-import _root_.org.apache.hadoop.fs.FileSystem
 
 
 object AppSparkSession {
@@ -16,8 +15,8 @@ object AppSparkSession {
     def apply(): SparkSession = if (ss == null) {ss = createSparkSession; ss} else ss
 
     private def createSparkSession: SparkSession = {
-        // Logger.getLogger("org").setLevel(Level.ERROR)
-        // Logger.getLogger("akka").setLevel(Level.ERROR)
+        Logger.getLogger("org").setLevel(Level.ERROR)
+        Logger.getLogger("akka").setLevel(Level.ERROR)
 
         val conf = new SparkConf()
             .setAppName(this.getClass.getCanonicalName())
@@ -27,7 +26,7 @@ object AppSparkSession {
             .set("spark.sql.parquet.filterPushdown", "true")
             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
             .set("spark.executor.userClassPathFirst", "true")
-            .set("spark.rdd.compress", "true")
+            // .set("spark.rdd.compress", "true")
 
 
         val props = Util.loadConfig()
