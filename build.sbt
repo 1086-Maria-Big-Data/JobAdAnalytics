@@ -5,7 +5,7 @@ version := "0.1"
 scalaVersion := "2.11.12"
 
 libraryDependencies ++= Seq(
-        // "com.amazonaws" % "aws-java-sdk-bundle" % "1.12.56",
+        "com.amazonaws" % "aws-java-sdk-bundle" % "1.12.56",
         "org.apache.hadoop" % "hadoop-common" % "3.3.1",
         "org.apache.hadoop" % "hadoop-client" % "3.3.1",
         "org.apache.hadoop" % "hadoop-aws" % "3.3.1",
@@ -14,4 +14,4 @@ libraryDependencies ++= Seq(
         "com.github.helgeho" %% "archivespark" % "3.0.1"
 )
 
-//trapExit := false
+trapExit := false
