@@ -16,8 +16,8 @@ object AppSparkSession {
     def apply(): SparkSession = if (ss == null) {ss = createSparkSession; ss} else ss
 
     private def createSparkSession: SparkSession = {
-        // Logger.getLogger("org").setLevel(Level.ERROR)
-        // Logger.getLogger("akka").setLevel(Level.ERROR)
+        Logger.getLogger("org").setLevel(Level.ERROR)
+        Logger.getLogger("akka").setLevel(Level.ERROR)
 
         val conf = new SparkConf()
             .setAppName(this.getClass.getCanonicalName())
