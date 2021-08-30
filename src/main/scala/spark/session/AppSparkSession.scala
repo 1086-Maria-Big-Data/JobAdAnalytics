@@ -7,7 +7,6 @@ import org.apache.spark.SparkConf
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
 import org.apache.spark.deploy.SparkHadoopUtil
-import _root_.org.apache.hadoop.fs.FileSystem
 
 
 object AppSparkSession {
