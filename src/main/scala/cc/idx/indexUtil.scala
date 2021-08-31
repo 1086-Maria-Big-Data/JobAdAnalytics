@@ -57,6 +57,13 @@ object IndexUtil {
         return session.read.schema(IndexUtil.schema).parquet(tablePath)
     }
 
+    /** Writes a DataFrame to .csv
+      *
+      * @param df The DataFrame to be written
+      * @param path The ouput path for the .csv
+      * @param include_header Boolean determines whether to include header
+      * @param single_file Boolean determines whether to coalesce to 1 partition before write
+      */
     def write(df: DataFrame, path: String, include_header: Boolean=false, single_file: Boolean=true): Unit = {
         var new_df: DataFrame = null
 
