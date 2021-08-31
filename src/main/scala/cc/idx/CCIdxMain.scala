@@ -55,10 +55,6 @@ object CCIdxMain {
 
         val warc_rdd = WarcUtil.load("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046149929.88/warc/CC-MAIN-20210723143921-20210723173921-00000.warc.gz")
         warc_rdd.take(5).foreach(warc => println(warc.toJsonString))
-
-        spark.stop
-
-        System.exit(0)
     }
 }
 
@@ -83,9 +79,5 @@ object TestExtract {
         val warc_rdd = WarcUtil.loadFiltered(forCdxRec)
 
         warc_rdd.take(1).foreach(x => println(x.toJsonString))
-
-        spark.stop
-
-        System.exit(0)
     }
 }
