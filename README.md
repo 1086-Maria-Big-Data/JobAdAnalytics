@@ -42,7 +42,15 @@ AWS_SECRET_ACCESS_KEY=INSERT_YOUR_ACCESS_SECRET
 ```
   * Save the file.
 ## Common Crawl Data Information
+
 <div align="center">
-  <img src="/GitHubPictures/CommonCrawlHierarchyPic.png">
+  <h4>File hierarchy within each common crawl crawl</h4>
+  <img src="/GitHubPictures/CommonCrawlHierarchyPic.png" width="1000">
+</div>
+
+
+<div align="center">
+  <h4>File types within each common crawl crawl</h4>
+  <img src="/GitHubPictures/CommonCrawlFileStructure.png" width="600">
 </div>
 
