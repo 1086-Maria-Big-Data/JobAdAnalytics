@@ -38,13 +38,21 @@ object AppSparkSession {
                 .getOrCreate
 
         val config = spark.sparkContext.hadoopConfiguration
-            config.set("fs.s3a.access.key", access_key)
-            config.set("fs.s3a.secret.key", access_secret)
+            config.set("fs.s3a.awsAccessKeyId", access_key)
+            config.set("fs.s3a.awsSecretAccessKey", access_secret)
+            config.set("fs.s3a.impl","org.apache.hadoop.fs.s3a.S3AFileSystem")
+            config.set("fs.s3a.impl","org.apache.hadoop.fs.s3native.NativeS3FileSystem")
+            config.set("com.amazonaws.services.s3.enableV4", "true")
+            config.set("fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.BasicAWSCredentialsProvider")
             config.set("fs.defaultFS", "s3a://commoncrawl/")
 
         val sparkhadoopconfig = SparkHadoopUtil.get.conf
-            sparkhadoopconfig.set("fs.s3a.access.key", access_key)
-            sparkhadoopconfig.set("fs.s3a.secret.key", access_secret)
+            sparkhadoopconfig.set("fs.s3a.awsAccessKeyId", access_key)
+            sparkhadoopconfig.set("fs.s3a.awsSecretAccessKey", access_secret)
+            sparkhadoopconfig.set("fs.s3a.impl","org.apache.hadoop.fs.s3a.S3AFileSystem")
+            sparkhadoopconfig.set("fs.s3a.impl","org.apache.hadoop.fs.s3native.NativeS3FileSystem")
+            sparkhadoopconfig.set("com.amazonaws.services.s3.enableV4", "true")
+            sparkhadoopconfig.set("fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.BasicAWSCredentialsProvider")
             sparkhadoopconfig.set("fs.defaultFS", "s3a://commoncrawl/")
 
         spark
