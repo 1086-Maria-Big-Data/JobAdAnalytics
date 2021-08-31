@@ -2,7 +2,7 @@ package cc.idx
 
 import org.apache.spark.sql.{DataFrame, Column}
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.types.{StructType, StructField, IntegerType, TimestampType, StringType, ShortType}
+import org.apache.spark.sql.types.{StructType, StructField, IntegerType, LongType, StringType, TimestampType, ShortType}
 
 object IndexUtil {
 
@@ -54,7 +54,7 @@ object IndexUtil {
     ))
 
     def load(session: SparkSession): DataFrame = {
-        return session.read.load(tablePath)
+        return session.read.schema(IndexUtil.schema).parquet(tablePath)
     }
 
     def write(df: DataFrame, path: String, include_header: Boolean=false, single_file: Boolean=true): Unit = {
