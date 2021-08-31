@@ -35,15 +35,34 @@ Job Ad Analytics makes use of common crawl data (https://commoncrawl.org/the-dat
   * EMR
   * S3
 ## Setup
-Set Amazon Web Service keys within generics.properties in a dev folder
-  * Now, to setup your access credentials:
-  * Create a file named generics.properties JobAdAnalytics/src/main/rescources/dev/.
-  * Add your AWS access key and secret as such:
+**To setup Amazon Web Services Access Keys:**
+* Create a directory within the project: JobAdAnalytics/src/main/rescources/dev/
+* Create a file within the dev directory just created named generics.properties
+* Add your AWS access key and secret as such:
 ``` 
 AWS_ACCESS_KEY_ID=INSERT_YOUR_ACCESS_KEY
 AWS_SECRET_ACCESS_KEY=INSERT_YOUR_ACCESS_SECRET
 ```
-  * Save the file.
+* Save to file
+
+**To run on EMR:**
+* Package project with sbt
+* Save project jar file in S3 bucket
+* Add an EMR step and complet configuration:
+```
+Step Type: Spark Application
+Name: Custome
+Deploy Mode: Cluster
+Spark Submit Options:
+--jars s3://spark-submit-test/p3-test/extra-jars/archivespark-deps.jar,s3://spark-submit-test/p3-test/extra-jars/archivespark.jar 
+--packages com.amazonaws:aws-java-sdk-bundle:1.12.56,org.apache.hadoop:hadoop-aws:2.10.1 
+--conf spark.serializer=org.apache.spark.serializer.KryoSerializer 
+--conf spark.executor.extraJavaOptions=-Dcom.amazonaws.services.s3.enableV4=true 
+--conf spark.driver.extraJavaOptions=-Dcom.amazonaws.services.s3.enableV4=true 
+--class cc.idx.CCIdxMain
+Application Location: Jar file location
+Action on Failure: Custom
+```
 ## Common Crawl Data Information
 
 <div align="center">
