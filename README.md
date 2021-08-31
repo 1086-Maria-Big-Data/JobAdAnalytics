@@ -13,6 +13,7 @@ related to job market advertisements.
 Job Ad Analytics makes use of common crawl data (https://commoncrawl.org/the-data/get-started/) as a data source for analyizing job ads across the internet. Comman crawl is a universally accessible and analyzable repository of web crawl data that includes raw web page data, extracted metadata, and text extractions. The project's ability to handle the vast amounts of data provided by common crawl is achieved by running the spark application on AWS-EMR. Job Ad Analytics makes use of this data by querying the common crawl index for URLs containing job/s and career/s in order to filter out any non-job advertisments within each of the crawls. The program then looks through each segment within a crawl to access the WARC files which contain WARC objects that hold the data and metadata for every webpage we identified as an advertisemnt from the index. From there, each web page pertaining to job advertisements is analyzed and queried to fulfill the client's requirements.
 ## More Indepth Descriptions
 * _Wiki: [Data Pre-Processing][Wiki/preprocess]_
+* _Wiki: [Query Methodology][Wiki/query]_
 ## Features/Client Requirements
 * Entry Level Experience
   * What percentage of entry level tech jobs require previous experience?
@@ -80,3 +81,4 @@ Action on Failure: Custom
 
 <!-- Markdown link & img dfn's -->
 [wiki/preprocess]: https://github.com/yourname/yourproject/wiki/Data-Preprocessing
+[wiki/query]: https://github.com/yourname/yourproject/wiki/Query-Methodology
