@@ -11,7 +11,7 @@ This project makes use of the free to use common craw datasets housed on Amazon 
 related to job market advertisements.
 ## Description
 Job Ad Analytics makes use of common crawl data (https://commoncrawl.org/the-data/get-started/) as a data source for analyizing job ads across the internet. Comman crawl is a universally accessible and analyzable repository of web crawl data that includes raw web page data, extracted metadata, and text extractions. The project's ability to handle the vast amounts of data provided by common crawl is achieved by running the spark application on AWS-EMR. Job Ad Analytics makes use of this data by querying the common crawl index for URLs containing job/s and career/s in order to filter out any non-job advertisments within each of the crawls. The program then looks through each segment within a crawl to access the WARC files which contain WARC objects that hold the data and metadata for every webpage we identified as an advertisemnt from the index. From there, each web page pertaining to job advertisements is analyzed and queried to fulfill the client's requirements.
-## Features/Clilent Requirements
+## Features/Client Requirements
 * Entry Level Experience
   * What percentage of entry level tech jobs require previous experience?
 * Job Posting Spikes
@@ -48,7 +48,7 @@ AWS_SECRET_ACCESS_KEY=INSERT_YOUR_ACCESS_SECRET
 **To run on EMR:**
 * Package project with sbt
 * Save project jar file in S3 bucket
-* Add an EMR step and complet configuration:
+* Add an EMR step and complete configuration:
 ```
 Step Type: Spark Application
 Name: Custome
