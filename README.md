@@ -6,10 +6,9 @@ related to job market advertisements
 ## Technologies
 * Scala 2.11.12
 * SBT Build Tool 1.5.5
-* Hadoop
-* Spark
-* SparkSQL
-* Hive
+* Hadoop 2.7.3
+* Spark 2.2.0
+* SparkSQL 2.2.0
 * Intellij Community
 * Amazon Web Services
 
