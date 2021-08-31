@@ -7,8 +7,11 @@ target/*
 .vscode
 .metals/
 .bloop/*
+lib/*
+src/main/resources/*
 
 app.config
+
 
 generic.properties
 .DS_Store
