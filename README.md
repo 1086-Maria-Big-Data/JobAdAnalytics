@@ -31,7 +31,6 @@ Job Ad Analytics makes use of common crawl data (https://commoncrawl.org/the-dat
 * Amazon Web Services
   * EMR
   * S3
-
 ## Setup
 Set Amazon Web Service keys within generics.properties in a dev folder
   * Now, to setup your access credentials:
@@ -42,3 +41,8 @@ AWS_ACCESS_KEY_ID=INSERT_YOUR_ACCESS_KEY
 AWS_SECRET_ACCESS_KEY=INSERT_YOUR_ACCESS_SECRET
 ```
   * Save the file.
+## Common Crawl Data Information
+<div align="center">
+  <img src="/GitHubPictures/CommonCrawlHierarchyPic.png">
+</div>
+
