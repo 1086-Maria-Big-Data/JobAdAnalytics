@@ -77,7 +77,7 @@ object TestExtract {
 
         val warc_rdd = WarcUtil.loadFiltered(forCdxRec)
 
-        val wordCount_df = spark.createDataFrame(warc_rdd.take(2).map(warc => SuperWarc(warc)).flatMap(warc => warc.payload(true).split(" ")).map(word => (word,1)).reduceByKey(_ + _).map(pair => (pair._1,pair._2)))
+        val wordCount_df = spark.createDataFrame(warc_rdd.map(warc => SuperWarc(warc)).flatMap(warc => warc.payload(true).split(" ")).map(word => (word,1)).reduceByKey(_ + _).map(pair => (pair._1,pair._2)).take(2))
 
         IndexUtil.write(wordCount_df, "s3a://maria-1086/Russell-Testing/write-test/out", include_header=true, single_file=true)
     }

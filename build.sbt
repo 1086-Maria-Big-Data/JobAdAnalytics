@@ -11,7 +11,7 @@ libraryDependencies ++= Seq(
         "org.apache.hadoop" % "hadoop-aws" % "2.7.3",
         "org.apache.spark" %% "spark-core" % "2.2.0",
         "org.apache.spark" %% "spark-sql" % "2.2.0",
-        "com.github.helgeho" %% "archivespark" % "3.0.1",
+        // "com.github.helgeho" %% "archivespark" % "3.0.1",
         "org.slf4j" % "slf4j-simple" % "1.6.2" % Test
 )
 
