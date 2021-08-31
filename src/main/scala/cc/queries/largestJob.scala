@@ -11,11 +11,13 @@ object largestJob extends Queries {
   }
   override def run(): Unit = {
     val spark = AppSparkSession()
-    IndexUtil.write(IndexUtil.load(spark)
+
+    IndexUtil.load(spark)
       .where(col("content_languages").rlike(".*eng.*"))
-      .where(col("crawl").like("CC-MAIN-2021-31")),
-      "s3://maria-1086/Devin-Testing/",
-      true, false)
+      .where(col("crawl").like("CC-MAIN-2021-31"))
+      .rdd.take(1).foreach(println)
+//      "s3a://maria-1086/Devin-Testing/write-test-local",
+//      true, true)
 
   }
 

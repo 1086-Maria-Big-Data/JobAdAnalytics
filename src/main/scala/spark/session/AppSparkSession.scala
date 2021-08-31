@@ -26,7 +26,7 @@ object AppSparkSession {
              .set("spark.sql.parquet.filterPushdown", "true")
              .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
              .set("spark.executor.userClassPathFirst", "true")
-            // .set("spark.rdd.compress", "true")
+             .set("spark.rdd.compress", "true")
 
 
          val props = Util.loadConfig()
