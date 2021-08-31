@@ -190,7 +190,7 @@ class SuperWarc private (_record: WarcRecord) {
       * toCdxString `String`: The CDX representawtion of this WARC record with addtional fields
       *
       * @param includeAdditionalFields - `Boolean`
-      * @return
+      * @return `String`
       */
     def toCdxString(includeAdditionalFields: Boolean=true): String = _record.toCdxString(includeAdditionalFields)
     /**
