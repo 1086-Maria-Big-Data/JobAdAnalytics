@@ -7,7 +7,7 @@
 This project makes use of the free to use common craw datasets housed on Amazon Web Services to fulfill client questions
 related to job market advertisements
 ## Description
-
+Job Ad Analytics makes use of common crawl data (https://commoncrawl.org/the-data/get-started/) as a data source for analyizing job ads across the internet. Comman crawl is a universally accessible and analyzable repository of web crawl data that includes raw web page data, extracted metadata, and text extractions. Job Ad Analytics makes use of this data by querying the common crawl index for URLs containing job/s and career/s in order to filter out any non-job advertisments within each of the crawls. The program then looks through each each segment within a crawl to access the WARC files which contain WARC objects that hold the data and metadata for every webpage. 
 ## Technologies
 * Scala 2.11.12
 * SBT Build Tool 1.5.5
