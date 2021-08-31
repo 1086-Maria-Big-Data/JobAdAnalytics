@@ -10,6 +10,9 @@ import org.archive.archivespark._
 import org.archive.archivespark.specific.warc._
 import org.archive.archivespark.specific.warc.functions._
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 import spark.session.AppSparkSession
 
 /**
@@ -67,18 +70,37 @@ object TestExtract {
     def main(args: Array[String]): Unit = {
         val spark = AppSparkSession()
 
-        val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc"
+        // val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc"
 
-        val df = spark.read.schema(IndexUtil.schema).parquet(tablePath)
+        // val df = spark.read.schema(IndexUtil.schema).parquet(tablePath)
 
-        val forCdxRec = df
-            .select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","fetch_redirect","warc_segment","warc_record_length","warc_record_offset","warc_filename")
-            .where("crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'")
+        // val forCdxRec = df
+        //     .select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","fetch_redirect","warc_segment","warc_record_length","warc_record_offset","warc_filename")
+        //     .where("crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'")
 
-        val warc_rdd = WarcUtil.loadFiltered(forCdxRec)
+        // val warc_rdd = WarcUtil.loadFiltered(forCdxRec).take(5)
 
-        val wordCount_df = spark.createDataFrame(warc_rdd.map(warc => SuperWarc(warc)).flatMap(warc => warc.payload(true).split(" ")).map(word => (word,1)).reduceByKey(_ + _).map(pair => (pair._1,pair._2)).take(2))
+        // val wordCount_df = spark.createDataFrame(
+        //     warc_rdd
+        //         .map(warc => SuperWarc(warc))
+        //         .flatMap(warc => warc.payload(true).split(" "))
+        //         .map(word => (word,1))
+        //         .groupBy(_._1)
+        //         .map(pair => (pair._1,pair._2.map(_._2).reduce(_ + _))).toSeq
+        // )
 
-        IndexUtil.write(wordCount_df, "s3a://maria-1086/Russell-Testing/write-test/out", include_header=true, single_file=true)
+        val warc_rdd = WarcUtil.load("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046149929.88/warc/CC-MAIN-20210723143921-20210723173921-00000.warc.gz")
+
+        val wordCount_df = spark.createDataFrame(
+            warc_rdd
+                .take(5)
+                .map(warc => SuperWarc(warc))
+                .flatMap(warc => warc.payload(true).split(" "))
+                .map(word => (word,1))
+                .groupBy(_._1)
+                .map(pair => (pair._1,pair._2.map(_._2).reduce(_ + _))).toSeq
+        )
+
+        IndexUtil.write(wordCount_df, "s3://maria-1086/Vince-Test-CCIdxMain/outputs/" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, single_file=true)
     }
 }

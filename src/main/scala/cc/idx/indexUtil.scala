@@ -61,7 +61,7 @@ object IndexUtil {
         var new_df: DataFrame = null
 
         if (single_file) {
-            new_df = df.coalesce(1)
+            new_df = df.repartition(1)
         }
         else {
             new_df = df
