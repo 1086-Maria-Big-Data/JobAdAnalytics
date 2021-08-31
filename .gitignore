@@ -7,8 +7,8 @@ target/*
 .vscode
 .metals/
 .bloop/*
-lib/*
-src/main/resources/*
+lib/
+src/main/resources/
 spark-warehouse/
 
 app.config
