@@ -1,7 +1,10 @@
+
 <div align="center">
   <h1>Job Ad Analytics Project</h1>
 </div>
-
+<div align="center">
+  <img src="/GitHubPictures/Employee.svg" width="300">
+</div>
 
 ## General Info
 This project makes use of the free to use common craw datasets housed on Amazon Web Services to fulfill client questions
