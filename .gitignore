@@ -9,6 +9,7 @@ target/*
 .bloop/*
 lib/*
 src/main/resources/*
+spark-warehouse/
 
 app.config
 
