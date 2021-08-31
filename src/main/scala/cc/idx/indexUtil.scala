@@ -52,11 +52,22 @@ object IndexUtil {
         StructField("crawl", StringType, true),
         StructField("subset", StringType, true)
     ))
-
+    /**
+     * Reads in data from parquet file into a dataframe
+     * 
+     * Reads data from columnar parquet files to workable dataframes, which are much more easily worked with 
+     */
     def load(session: SparkSession): DataFrame = {
         return session.read.schema(IndexUtil.schema).parquet(tablePath)
     }
 
+    /** Writes a DataFrame to .csv
+      *
+      * @param df The DataFrame to be written
+      * @param path The ouput path for the .csv
+      * @param include_header Boolean determines whether to include header
+      * @param single_file Boolean determines whether to coalesce to 1 partition before write
+      */
     def write(df: DataFrame, path: String, include_header: Boolean=false, single_file: Boolean=true): Unit = {
         var new_df: DataFrame = null
 
@@ -79,7 +90,16 @@ object IndexUtil {
             csv(path)
         }
     }
-
+    /**
+     * Filters out invalid crawls and subsets
+     * 
+     * Checks for IllegalArgumentExceptions and throws them out, printing out error messages for crawl and subset
+     * Given a condition, the data is filtered by that condition
+     * @param index_df DataFrame containing the indexes
+     * @param crawl The crawl of the relevant data
+     * @param subset The file type of the data being worked with
+     * @param filter_exprs The parameter from which the data will be filtered with
+     */
     def filter(index_df: DataFrame, crawl: String, subset: String, filter_exprs: Column=null): DataFrame = {
 
         if (!crawls.contains(crawl)) throw new IllegalArgumentException(s"Invalid crawl ${crawl}")
@@ -90,11 +110,15 @@ object IndexUtil {
         
         return index_df.where(index_df("crawl") === crawl && index_df("subset") === subset)
     }
-
+    /**
+     * Takes in any number of dataframes to be combined 
+     */
     def merge(index_dfs: DataFrame*): DataFrame = {
         return index_dfs.reduce(_ union _)
     }
-
+    /**
+     * Takes in datagrames wrapped in a collection to be combined
+     */
     def merge(index_dfs: Iterable[DataFrame]): DataFrame = {
         return index_dfs.reduce(_ union _)
     }
