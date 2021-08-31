@@ -20,13 +20,16 @@ object AppSparkSession {
 
         val conf = new SparkConf()
             .setAppName(this.getClass.getCanonicalName())
-             .set("spark.hadoop.parquet.enable.dictionary", "true")
-             .set("spark.hadoop.parquet.enable.summary-metadata", "true")
-             .set("spark.sql.hive.metastorePartitionPruning", "true")
-             .set("spark.sql.parquet.filterPushdown", "true")
-             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-             .set("spark.executor.userClassPathFirst", "true")
-             .set("spark.rdd.compress", "true")
+            .set("spark.hadoop.parquet.enable.dictionary", "true")
+            .set("spark.hadoop.parquet.enable.summary-metadata", "true")
+            .set("spark.sql.hive.metastorePartitionPruning", "true")
+            .set("spark.sql.parquet.filterPushdown", "true")
+            .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+            .set("spark.executor.userClassPathFirst", "true")
+            .set("spark.kryoserializer.buffer.max.mb", "512")
+
+
+        // .set("spark.rdd.compress", "true")
 
 
          val props = Util.loadConfig()
