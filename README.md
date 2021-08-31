@@ -1,8 +1,13 @@
-# JobAdAnalytics
+<div align="center">
+  <h1>Job Ad Analytics Project</h1>
+</div>
+
 
 ## General Info
 This project makes use of the free to use common craw datasets housed on Amazon Web Services to fulfill client questions
 related to job market advertisements
+## Description
+
 ## Technologies
 * Scala 2.11.12
 * SBT Build Tool 1.5.5
