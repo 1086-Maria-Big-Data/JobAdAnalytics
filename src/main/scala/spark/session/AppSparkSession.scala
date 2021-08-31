@@ -20,18 +20,18 @@ object AppSparkSession {
 
         val conf = new SparkConf()
             .setAppName(this.getClass.getCanonicalName())
-            // .set("spark.hadoop.parquet.enable.dictionary", "true")
-            // .set("spark.hadoop.parquet.enable.summary-metadata", "true")
-            // .set("spark.sql.hive.metastorePartitionPruning", "true")
-            // .set("spark.sql.parquet.filterPushdown", "true")
-            // .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-            // .set("spark.executor.userClassPathFirst", "true")
+             .set("spark.hadoop.parquet.enable.dictionary", "true")
+             .set("spark.hadoop.parquet.enable.summary-metadata", "true")
+             .set("spark.sql.hive.metastorePartitionPruning", "true")
+             .set("spark.sql.parquet.filterPushdown", "true")
+             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+             .set("spark.executor.userClassPathFirst", "true")
             // .set("spark.rdd.compress", "true")
 
 
-        // val props = Util.loadConfig()
-        // val access_key = props.getProperty("AWS_ACCESS_KEY_ID")
-        // val access_secret = props.getProperty("AWS_SECRET_ACCESS_KEY")
+         val props = Util.loadConfig()
+         val access_key = props.getProperty("AWS_ACCESS_KEY_ID")
+         val access_secret = props.getProperty("AWS_SECRET_ACCESS_KEY")
 
         val spark = SparkSession.builder.master("local[*]")
                 .config(conf)
