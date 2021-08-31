@@ -80,5 +80,5 @@ Action on Failure: Custom
 </div>
 
 <!-- Markdown link & img dfn's -->
-[wiki/preprocess]: https://github.com/yourname/yourproject/wiki/Data-Preprocessing
-[wiki/query]: https://github.com/yourname/yourproject/wiki/Query-Methodology
+[wiki/preprocess]: https://github.com/1086-Maria-Big-Data/JobAdAnalytics/wiki/Data-Preprocessing
+[wiki/query]: https://github.com/1086-Maria-Big-Data/JobAdAnalytics/wiki/Query-Methodology
