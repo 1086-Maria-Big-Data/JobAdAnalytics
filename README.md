@@ -54,7 +54,7 @@ Step Type: Spark Application
 Name: Custome
 Deploy Mode: Cluster
 Spark Submit Options:
---jars s3://spark-submit-test/p3-test/extra-jars/archivespark-deps.jar,s3://spark-submit-test/p3-test/extra-jars/archivespark.jar 
+--jars s3://.../archivespark-deps.jar,s3://.../archivespark.jar 
 --packages com.amazonaws:aws-java-sdk-bundle:1.12.56,org.apache.hadoop:hadoop-aws:2.10.1 
 --conf spark.serializer=org.apache.spark.serializer.KryoSerializer 
 --conf spark.executor.extraJavaOptions=-Dcom.amazonaws.services.s3.enableV4=true 
