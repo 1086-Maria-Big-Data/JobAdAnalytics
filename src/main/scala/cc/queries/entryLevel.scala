@@ -26,8 +26,8 @@ object entryLevel extends Queries {
 
    //val xx=rdd.take(300).map(x1=>SuperWarc(x1)).map{r =>(r.payload(textOnly = true).split(" ").mkString("Array(", ", ", ")").contains("Comments"))}
 
-    println(rdd.count)
-    val xxt=rdd.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.take(50000).map{r=>r.split(" ").mkString("Array(", ", ", ")").contains("Comments")}
+    //println(rdd.count)
+    val xxt=rdd.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.take(1000).map{r=>r.split(" ").mkString("Array(", ", ", ")").contains("Comments")}
 
     println(xxt.count(_==true))
 
