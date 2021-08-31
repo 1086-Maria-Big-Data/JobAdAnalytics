@@ -74,10 +74,16 @@ object TestExtract {
         val forCdxRec = df
             .select("url_surtkey","fetch_time","url","content_mime_type","fetch_status","content_digest","fetch_redirect","warc_segment","warc_record_length","warc_record_offset","warc_filename")
             .where("crawl=\'CC-MAIN-2021-10\' And subset=\'warc\' AND url RLIKE \'.*(/job/|/jobs/|/careers/|/career/).*\'")
+        
+        forCdxRec.show(5)
 
 
         val warc_rdd = WarcUtil.loadFiltered(forCdxRec)
 
-        warc_rdd.take(1)
+        import spark.implicits._
+
+        val wordCount_df = warc_rdd.map(warc => SuperWarc(warc)).flatMap(warc => warc.payload(true).split(" ")).map(word => (word,1)).reduceByKey(_ + _).map(pair => (pair._1,pair._2)).toDF()
+        wordCount_df.show(5)
+        IndexUtil.write(wordCount_df, "s3a://maria-1086/Russell-Testing/write-test/out", include_header=true, single_file=true)
     }
 }
