@@ -14,9 +14,9 @@ related to job market advertisements
 * Amazon Web Services
 
 ## Setup
-Set Amazon Web Service keys within generics.properties in JobAdAnalytics/src/main/resources/dev/
+Set Amazon Web Service keys within generics.properties in a dev folder
   * Now, to setup your access credentials:
-  * Create a file named `app.config` in your project root folder.
+  * Create a file named generics.properties JobAdAnalytics/src/main/rescources/dev/.
   * Add your AWS access key and secret as such:
 ``` 
 AWS_ACCESS_KEY_ID=INSERT_YOUR_ACCESS_KEY
