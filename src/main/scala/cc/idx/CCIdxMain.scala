@@ -78,6 +78,6 @@ object TestExtract {
 
         val warc_rdd = WarcUtil.loadFiltered(forCdxRec)
 
-        warc_rdd.take(1).foreach(x => println(x.toJsonString))
+        warc_rdd.take(1)
     }
 }
