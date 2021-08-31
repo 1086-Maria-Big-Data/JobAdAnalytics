@@ -16,6 +16,8 @@ Job Ad Analytics makes use of common crawl data (https://commoncrawl.org/the-dat
 * SparkSQL 2.2.0
 * Intellij Community
 * Amazon Web Services
+  * EMR
+  * S3
 
 ## Setup
 Set Amazon Web Service keys within generics.properties in a dev folder
