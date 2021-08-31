@@ -9,7 +9,7 @@ import org.archive.archivespark.specific.warc.functions._
 
 object entryLevel extends Queries {
   def main(args: Array[String]): Unit = {
-    //a very fast way to filter out all entry level not requiring experience with example for small test case
+    //a very fast way to filter out all entry level not requiring experience with example for one file test case
 
     val spark = AppSparkSession()
     //example file and in full example we bring in all paths after index specifies them
@@ -19,22 +19,30 @@ object entryLevel extends Queries {
     val countPart=rdd.getNumPartitions
     println(countPart)
 
+    //just a test may need more memory of kryo serializer for below to work, already increased to 512mb
     //val rdd2=rdd.repartition(numPartitions=2)
-    //rdd.take(319).map(x1=>SuperWarc(x1)).foreach{r =>println(r.payload(textOnly = true).split(" ").mkString("Array(", ", ", ")"))}
+    //rdd.collect.map(x1=>SuperWarc(x1)).foreach{r =>println(r.payload(textOnly = true).split(" ").mkString("Array(", ", ", ")"))}
 
     //println(rdd2.partitions.length)
 
-   //val xx=rdd.take(300).map(x1=>SuperWarc(x1)).map{r =>(r.payload(textOnly = true).split(" ").mkString("Array(", ", ", ")").contains("Comments"))}
-
-    //println(rdd.count)
-    val xxt=rdd.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.take(1000).map{r=>r.split(" ").mkString("Array(", ", ", ")").contains("Comments")}
-
-    println(xxt.count(_==true))
-
-
+    //just a test
+    //may need more memory of kryo serializer for below to work
+    //val xx2=rdd.collect.map(x1=>SuperWarc(x1)).map{r =>(r.payload(textOnly = true).split(" ").mkString("Array(", ", ", ")").contains("Comments"))}
     //println(xx2.count(_==true))
 
-    //val xx3=rdd.take(3).map(x1=>SuperWarc(x1)).foreach{r =>println(r.status)}
+    //below works make sure .set("spark.kryoserializer.buffer.max.mb", "512")
+    //println(rdd.count)
+    //val xxt=rdd.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.collect.map{r=>r.split(" ").mkString("Array(", ", ", ")").contains("Comments")}
+    //println(xxt.count(_==true))
+
+    val xxt=rdd.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.collect.map{r=>r.split(" ").mkString("Array(", ", ", ")")}.filter{
+      f=> f.contains("entry-level")|| f.contains("entry level")}
+    val xxt2=xxt.filter(f=> f.contains("experience"))
+    val xxt3=xxt2.filter(f=> !f.contains("no experience"))
+
+    println(xxt.length)
+    println(xxt2.length)
+    //println(xxt3.length.toDouble/xxt.length.toDouble)
 
     spark.stop
     System.exit(0)
