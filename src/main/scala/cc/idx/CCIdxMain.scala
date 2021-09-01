@@ -82,8 +82,8 @@ object TestExtract {
 
         import spark.implicits._
 
-        val wordCount_df = warc_rdd.map(warc => SuperWarc(warc)).flatMap(warc => warc.payload(true).split(" ")).map(word => (word,1)).reduceByKey(_ + _).map(pair => (pair._1,pair._2)).toDF()
+        val wordCount_df = spark.sparkContext.parallelize(warc_rdd.take(100)).map(warc => SuperWarc(warc)).flatMap(warc => warc.payload(true).split(" ")).map(word => (word,1)).reduceByKey(_ + _).map(pair => (pair._1,pair._2)).toDF("word","count")
         wordCount_df.show(5)
-        IndexUtil.write(wordCount_df, "s3a://maria-1086/Russell-Testing/write-test/out", include_header=true, single_file=true)
+        IndexUtil.write(wordCount_df, "s3a://spark-submit-test/p3-test/write-test/" + args(0), include_header=true, single_file=true)
     }
 }
