@@ -9,11 +9,18 @@ import org.apache.log4j.Level
 import org.apache.spark.deploy.SparkHadoopUtil
 
 
+/**Factory for SparkSession instances*/
 object AppSparkSession {
     private var ss: SparkSession = null
 
+    /**
+      * Returns a configured SparkSession, constructed using createSparkSession
+      */
     def apply(): SparkSession = if (ss == null) {ss = createSparkSession; ss} else ss
 
+    /**
+      * Returns a configured SparkSession
+      */
     private def createSparkSession: SparkSession = {
         // Logger.getLogger("org").setLevel(Level.ERROR)
         // Logger.getLogger("akka").setLevel(Level.ERROR)
@@ -22,8 +29,11 @@ object AppSparkSession {
             .setAppName(this.getClass.getCanonicalName())
             .set("spark.hadoop.parquet.enable.dictionary", "true")
             .set("spark.hadoop.parquet.enable.summary-metadata", "true")
-            .set("spark.sql.hive.metastorePartitionPruning", "true")
             .set("spark.sql.parquet.filterPushdown", "true")
+            .set("spark.driver.extraJavaOptions", "-Dcom.amazonaws.services.s3.enableV4=true")
+            .set("spark.executor.extraJavaOptions", "-Dcom.amazonaws.services.s3.enableV4=true")
+            .set("spark.hadoop.fs.s3a.endpoint","s3.us-east-1.amazonaws.com")
+            .set("spark.serializer","org.apache.spark.serializer.KryoSerializer")
 
 
         val props = Util.loadConfig()
