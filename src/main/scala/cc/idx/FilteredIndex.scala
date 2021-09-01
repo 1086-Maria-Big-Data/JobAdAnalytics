@@ -20,10 +20,15 @@ object FilteredIndex {
    * method for debugging/improving our filters.
    *  */
 
-  def filter(): DataFrame = {
+  def filter(initial_partition: Int=256, final_partition: Int=16): DataFrame = {
+    /** Filters the CCIndex with mutually agreed filters that should work for all our queries.
+     *
+     * @param intial_partition - the number of partitions to sort the CCIndex by for processing
+     * @param final_partition - the number of partitions to pass into WarcUtil.loadfiltered
+     */
     val spark = AppSparkSession()
 
-    val df = IndexUtil.load(spark)
+    val df = IndexUtil.load(spark).repartition(initial_partition)
 
     return df
       .select("url_surtkey", "fetch_time", "url", "content_mime_type", "fetch_status", "content_digest", "fetch_redirect", "warc_segment", "warc_record_length", "warc_record_offset", "warc_filename")
@@ -32,7 +37,8 @@ object FilteredIndex {
       .where(col("content_languages") === "eng").cache
       .where(col("content_mime_type") === "text/html")
       .where(col("url_host_tld") === "com")
-      .where(col("url_path").rlike("(?i)^(?=.*(jobs\\.|careers\\.|/job[s]{0,1}/|/career[s]{0,1}/))(?=.*(" + techJobTerms.mkString("|") + ")).*$")).cache
+      .where(col("url_path").rlike("(?i)^(?=.*(jobs\\.|careers\\.|/job[s]{0,1}/|/career[s]{0,1}/))(?=.*(" + techJobTerms.mkString("|") + ")).*$"))
+      .repartition(final_partition)
   }
 
   def get(): RDD[WarcRecord] = {
@@ -40,7 +46,7 @@ object FilteredIndex {
   }
 
   def view_sample():Unit ={
-    filter().take(100).foreach(row => row.toSeq.foreach(println))
+    filter().take(10000).foreach(row => row.toSeq.foreach(println))
   }
 
   val techJobTerms = Seq("Sharepoint",
