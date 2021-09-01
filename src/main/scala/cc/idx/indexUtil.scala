@@ -57,11 +57,11 @@ object IndexUtil {
         return session.read.schema(IndexUtil.schema).parquet(tablePath)
     }
 
-    def write(df: DataFrame, path: String, include_header: Boolean=false, single_file: Boolean=true): Unit = {
+    def write(df: DataFrame, path: String, include_header: Boolean=false, num_files: Int=0): Unit = {
         var new_df: DataFrame = null
 
-        if (single_file) {
-            new_df = df.repartition(1)
+        if (num_files >= 1) {
+            new_df = df.repartition(num_files)
         }
         else {
             new_df = df
