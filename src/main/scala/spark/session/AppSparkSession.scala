@@ -49,6 +49,8 @@ object AppSparkSession {
         val config = spark.sparkContext.hadoopConfiguration
             config.set("fs.s3a.access.key", access_key)
             config.set("fs.s3a.secret.key", access_secret)
+            config.set("fs.s3.awsAccessKeyId", access_key)
+            config.set("fs.s3.awsSecretAccessKey", access_secret)            
             config.set("fs.s3a.multipart.size", "100")
             config.set("fs.s3a.threads.core", "10")
             config.set("fs.s3a.block.size", "32")
@@ -56,9 +58,8 @@ object AppSparkSession {
         val sparkhadoopconfig = SparkHadoopUtil.get.conf
             sparkhadoopconfig.set("fs.s3a.access.key", access_key)
             sparkhadoopconfig.set("fs.s3a.secret.key", access_secret)
-            sparkhadoopconfig.set("fs.s3a.multipart.size", "100")
-            sparkhadoopconfig.set("fs.s3a.threads.core", "10")
-            sparkhadoopconfig.set("fs.s3a.block.size", "32")
+            sparkhadoopconfig.set("fs.s3.awsAccessKeyId", access_key)
+            sparkhadoopconfig.set("fs.s3.awsSecretAccessKey", access_secret)
         
         // val iter = sparkhadoopconfig.iterator()
         // while (iter.hasNext()) {
