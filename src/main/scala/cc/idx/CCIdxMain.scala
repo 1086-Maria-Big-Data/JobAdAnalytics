@@ -65,7 +65,7 @@ object CCIdxMain {
                 .toSeq
         )
 
-        IndexUtil.write(wordCount_df, "s3a://spark-submit-test/p3-test/write-test/out-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=1)
+        IndexUtil.write(wordCount_df, "s3a://maria-1086/Devin-Testing/write-test/out-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=1)
 
         System.exit(0)
     }
@@ -75,75 +75,49 @@ object TestExtract {
 
     def main(args: Array[String]): Unit = {
         val spark = AppSparkSession()
-
-        /**
-          * Example 1: Load one WARC file from CommonCrawl S3, perform word count on 5 records and write as CSV to S3 bucket.
-          */
-        
-        val warc_rdd = WarcUtil.load("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046149929.88/warc/CC-MAIN-20210723143921-20210723173921-00000.warc.gz")
-
-        val wordCount_df = spark.createDataFrame(
-            warc_rdd
-                .take(5)
-                .map(warc => SuperWarc(warc))
-                .flatMap(warc => warc.payload(true).split(" "))
-                .map(word => (word, 1))
-                .groupBy(_._1)
-                .map(pair => (pair._1, pair._2.map(_._2).reduce(_ + _)))
-                .toSeq
-        )
-
-<<<<<<< HEAD
-        IndexUtil.write(wordCount_df, "s3a://maria-1086/Devin-Testing/outputs/" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=1)
-=======
-        IndexUtil.write(wordCount_df, "s3a://spark-submit-test/p3-test/write-test/out-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=1)
->>>>>>> 155924e0807fdfa6ad682872986ed01ba1817a2c
-
-        /**
-          * Example 2: Query CommonCrawl Index, get WARC record offsets, perform word count on all records and write as CSV to S3 bucket.
-          */
-<<<<<<< HEAD
 //
-//        val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc"
+//        /**
+//          * Example 1: Load one WARC file from CommonCrawl S3, perform word count on 5 records and write as CSV to S3 bucket.
+//          */
 //
-//        val df = spark.read.schema(IndexUtil.schema).parquet(tablePath)
+//        val warc_rdd = WarcUtil.load("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046149929.88/warc/CC-MAIN-20210723143921-20210723173921-00000.warc.gz")
 //
-//        val forCdxRec = df
-//            .select("url_surtkey", "fetch_time", "url", "content_mime_type", "fetch_status", "content_digest", "fetch_redirect", "warc_segment", "warc_record_length", "warc_record_offset", "warc_filename")
-//            .where(col("crawl") === "CC-MAIN-2021-10" && col("subset") === "warc" && col("content_languages") === "eng" && col("url_path").rlike(".*(/job/|/jobs/|/careers/|/career/).*"))
-//
-//        val warc_rdd2 = WarcUtil.loadFiltered(forCdxRec).repartition(640)
-//
-//        val wordCount_df2 = spark.createDataFrame(
-//            warc_rdd2
+//        val wordCount_df = spark.createDataFrame(
+//            warc_rdd
+//                .take(5)
 //                .map(warc => SuperWarc(warc))
 //                .flatMap(warc => warc.payload(true).split(" "))
 //                .map(word => (word, 1))
-//                .reduceByKey(_ + _)
+//                .groupBy(_._1)
+//                .map(pair => (pair._1, pair._2.map(_._2).reduce(_ + _)))
+//                .toSeq
 //        )
 //
-//        IndexUtil.write(wordCount_df2, "s3a://maria-1086/Devin-Testing/outputs/" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=64)
-=======
+//
+//        IndexUtil.write(wordCount_df, "s3a://spark-submit-test/p3-test/write-test/out-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=1)
+//
+        /**
+          * Example 2: Query CommonCrawl Index, get WARC record offsets, perform word count on all records and write as CSV to S3 bucket.
+          */
 
-        // val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc"
+         val tablePath = "s3a://commoncrawl/cc-index/table/cc-main/warc"
 
-        // val df = spark.read.schema(IndexUtil.schema).parquet(tablePath)
+         val df = spark.read.schema(IndexUtil.schema).parquet(tablePath)
 
-        // val forCdxRec = df
-        //     .select("url_surtkey", "fetch_time", "url", "content_mime_type", "fetch_status", "content_digest", "fetch_redirect", "warc_segment", "warc_record_length", "warc_record_offset", "warc_filename")
-        //     .where(col("crawl") === "CC-MAIN-2021-10" && col("subset") === "warc" && col("content_languages") === "eng" && col("url_path").rlike(".*(/job/|/jobs/|/careers/|/career/).*"))
+         val forCdxRec = df
+             .select("url_surtkey", "fetch_time", "url", "content_mime_type", "fetch_status", "content_digest", "fetch_redirect", "warc_segment", "warc_record_length", "warc_record_offset", "warc_filename")
+             .where(col("crawl") === "CC-MAIN-2021-10" && col("subset") === "warc" && col("content_languages") === "eng" && col("url_path").rlike(".*(/job/|/jobs/|/careers/|/career/).*"))
 
-        // val warc_rdd2 = WarcUtil.loadFiltered(forCdxRec).repartition(640)
+         val warc_rdd2 = WarcUtil.loadFiltered(forCdxRec).repartition(640)
 
-        // val wordCount_df2 = spark.createDataFrame(
-        //     warc_rdd2
-        //         .map(warc => SuperWarc(warc))
-        //         .flatMap(warc => warc.payload(true).split(" "))
-        //         .map(word => (word, 1))
-        //         .reduceByKey(_ + _)
-        // )
+         val wordCount_df2 = spark.createDataFrame(
+             warc_rdd2
+                 .map(warc => SuperWarc(warc))
+                 .flatMap(warc => warc.payload(true).split(" "))
+                 .map(word => (word, 1))
+                 .reduceByKey(_ + _)
+         )
 
-        // IndexUtil.write(wordCount_df2, "s3a://maria-1086/Vince-Test-CCIdxMain/outputs/" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=64)
->>>>>>> 155924e0807fdfa6ad682872986ed01ba1817a2c
+         IndexUtil.write(wordCount_df2, "s3a://maria-1086/Vince-Test-CCIdxMain/outputs/" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=64)
     }
 }

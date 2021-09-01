@@ -52,10 +52,11 @@ object IndexUtil {
         StructField("crawl", StringType, true),
         StructField("subset", StringType, true)
     ))
+
     /**
      * Reads in data from parquet file into a dataframe
-     * 
-     * Reads data from columnar parquet files to workable dataframes, which are much more easily worked with 
+     *
+     * Reads data from columnar parquet files to workable dataframes, which are much more easily worked with
      */
     def load(session: SparkSession): DataFrame = {
         return session.read.schema(IndexUtil.schema).parquet(tablePath)
