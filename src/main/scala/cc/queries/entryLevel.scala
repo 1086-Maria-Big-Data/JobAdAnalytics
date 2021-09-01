@@ -41,8 +41,8 @@ object entryLevel extends Queries {
     val xxt3=xxt2.filter(f=> !f.contains("no experience"))
 
     println(xxt.length)
-    println(xxt2.length)
-    //println(xxt3.length.toDouble/xxt.length.toDouble)
+    println(xxt3.length)
+    println(xxt3.length.toDouble/xxt.length.toDouble)
 
     spark.stop
     System.exit(0)

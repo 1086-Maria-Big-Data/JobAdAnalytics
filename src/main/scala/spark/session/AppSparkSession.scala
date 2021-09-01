@@ -34,6 +34,7 @@ object AppSparkSession {
             .set("spark.executor.extraJavaOptions", "-Dcom.amazonaws.services.s3.enableV4=true")
             .set("spark.hadoop.fs.s3a.endpoint","s3.us-east-1.amazonaws.com")
             .set("spark.serializer","org.apache.spark.serializer.KryoSerializer")
+            .set("spark.kryoserializer.buffer.max.mb", "512")
 
 
         val props = Util.loadConfig()
