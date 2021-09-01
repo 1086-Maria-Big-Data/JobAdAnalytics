@@ -66,13 +66,13 @@ object IndexUtil {
       * @param df The DataFrame to be written
       * @param path The ouput path for the .csv
       * @param include_header Boolean determines whether to include header
-      * @param single_file Boolean determines whether to coalesce to 1 partition before write
+      * @param num_files The number of files to write into if >= 1. Else, this argument is ignored.
       */
-    def write(df: DataFrame, path: String, include_header: Boolean=false, single_file: Boolean=true): Unit = {
+    def write(df: DataFrame, path: String, include_header: Boolean=false, num_files: Int=0): Unit = {
         var new_df: DataFrame = null
 
-        if (single_file) {
-            new_df = df.coalesce(1)
+        if (num_files >= 1) {
+            new_df = df.repartition(num_files)
         }
         else {
             new_df = df
