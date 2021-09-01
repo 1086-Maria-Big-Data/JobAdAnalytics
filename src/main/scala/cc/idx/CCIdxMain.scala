@@ -86,7 +86,7 @@ object TestExtract {
                 .toSeq
         )
 
-        IndexUtil.write(wordCount_df, "s3://maria-1086/Vince-Test-CCIdxMain/outputs/" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=1)
+        IndexUtil.write(wordCount_df, "s3://vince-bucket/p3/outs/" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=1)
 
         /**
           * Example 2: Query CommonCrawl Index, get WARC record offsets, perform word count on all records and write as CSV to S3 bucket.
