@@ -10,9 +10,9 @@ import spark.session.AppSparkSession
 object techJobs extends Queries {
   def main(args: Array[String]): Unit = {
     val spark = AppSparkSession()
-    val df = spark.read.csv("s3a://maria-1086/Devin-Testing/outputs/test-write/")
+    val df = spark.read.options(Map("header" -> "true")).csv("s3a://maria-1086/Devin-Testing/outputs/test-write/")
 
-    val withDate = df.withColumn("fetch_date", to_date(col("_c1"),"yyyy-MM-dd"))
+    val withDate = df.withColumn("fetch_date", to_date(col("fetch_time"),"yyyy-MM-dd"))
 
     val grouped = withDate.groupBy("fetch_date").count().orderBy("fetch_date")
 
