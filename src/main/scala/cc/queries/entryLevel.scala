@@ -44,7 +44,8 @@ object entryLevel extends Queries {
       "s3a://commoncrawl/crawl-data/CC-MAIN-2014-23/segments/1405997885796.93/warc/CC-MAIN-20140722025805-00016-ip-10-33-131-23.ec2.internal.warc.gz"),2)
 
     IndexListT.collect.foreach(println)
-    IndexListT.map((f:String)=> runquery(f)).collect.foreach(println)
+    //IndexListT.repartition(2).map((f:String)=> runquery(f)).collect.foreach(println)
+    IndexListT.repartition(2).map((f:String)=> runquery(f)).collect.foreach(println)
 
     //just examples I have been using
 
