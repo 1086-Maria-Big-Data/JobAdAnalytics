@@ -40,7 +40,7 @@ Job Ad Analytics makes use of common crawl data (https://commoncrawl.org/the-dat
 ## Setup
 **To setup Amazon Web Services Access Keys:**
 * Create a directory within the project: JobAdAnalytics/src/main/rescources/dev/
-* Create a file within the dev directory just created named generics.properties
+* Create a file within the dev directory just created named generic.properties
 * Add your AWS access key and secret as such:
 ``` 
 AWS_ACCESS_KEY_ID=INSERT_YOUR_ACCESS_KEY
