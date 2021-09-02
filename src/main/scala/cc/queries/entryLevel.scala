@@ -9,43 +9,36 @@ import org.archive.archivespark.specific.warc.functions._
 import org.apache.spark.rdd.RDD
 
 object entryLevel extends Queries {
-  //unless you want it to hang forever:
+  //unless you want it to hang forever comment out the following when on local:
   //config.set("fs.s3a.multipart.size", "100")
   // config.set("fs.s3a.threads.core", "10")
   // config.set("fs.s3a.block.size", "32") in AppSpark Session also this may fix Amazon Jave Heap error too
   //does not hang on Amazon though
 
-  def runquery(string1:String):Int={
-    //var string1:String=""
-    //string1= "s3a://commoncrawl/crawl-data/CC-MAIN-2016-36/segments/1471982290442.1/warc/CC-MAIN-20160823195810-00000-ip-10-153-172-175.ec2.internal.warc.gz"
-    val rdd1: org.apache.spark.rdd.RDD[WarcRecord] = WarcUtil.load(string1)
-    val xxt=rdd1.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.collect.map{r=>r.split(" ").mkString("Array(", ", ", ")")}.filter{
-      f=> f.contains("entry-level")|| f.contains("entry level")}
-    val xxt2=xxt.filter(f=> f.contains("experience"))
-    val xxt3=xxt2.filter(f=> !f.contains("no experience"))
-
-    //println(xxt.length)
-    //println(xxt3.length)
-    //println(xxt3.length.toDouble/xxt.length.toDouble)
-
-    //val result=xxt3.length.toDouble/xxt.length.toDouble
-    val result=xxt3.length
-    return result
-  }
+  //still need to do some optimizations this version is easiest to run on AWS, others take awhile
 
   def main(args: Array[String]): Unit = {
     //a very fast way to filter out all entry level not requiring experience with example for one file test case
-
     val spark = AppSparkSession()
     //example file and in full example we bring in all paths after index specifies them
 
     //in this example we use two files
     val IndexListT=spark.sparkContext.parallelize(Seq("s3a://commoncrawl/crawl-data/CC-MAIN-2016-36/segments/1471982290442.1/warc/CC-MAIN-20160823195810-00000-ip-10-153-172-175.ec2.internal.warc.gz",
       "s3a://commoncrawl/crawl-data/CC-MAIN-2014-23/segments/1405997885796.93/warc/CC-MAIN-20140722025805-00016-ip-10-33-131-23.ec2.internal.warc.gz"),2)
+    val IndexListTStr:Array[String]=IndexListT.collect
+    for(i<- 0 to (IndexListTStr.length-1)){
+      println(IndexListTStr(i))
+      var rdd1:RDD[WarcRecord]=WarcUtil.load(IndexListTStr(i))
+      val xxt=rdd1.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.take(10000).map{r=>r.split(" ").mkString("Array(", ", ", ")")}.filter{
+        f=> f.contains("entry-level")|| f.contains("entry level")}
+      val xxt2=xxt.filter(f=> f.contains("experience"))
+      val xxt3=xxt2.filter(f=> !f.contains("no experience"))
 
-    IndexListT.collect.foreach(println)
-    //IndexListT.repartition(2).map((f:String)=> runquery(f)).collect.foreach(println)
-    IndexListT.repartition(2).map((f:String)=> runquery(f)).collect.foreach(println)
+      println(xxt.length)
+      println(xxt3.length)
+      println(xxt3.length.toDouble/xxt.length.toDouble)
+    }
+
 
     //just examples I have been using
 
