@@ -66,10 +66,11 @@ object IndexUtil {
       *
       * @param df The DataFrame to be written
       * @param path The ouput path for the .csv
+      * @param delimiter The delimiter for the .csv. Default: ","
       * @param include_header Boolean determines whether to include header
-      * @param num_files The number of files to write into if >= 1. Else, this argument is ignored.
+      * @param num_files The number of files to write into if >= 1. Else, this argument is ignored and the original number of partitions of the DataFrame is used.
       */
-    def write(df: DataFrame, path: String, include_header: Boolean=false, num_files: Int=0): Unit = {
+    def write(df: DataFrame, path: String, delimiter: String = ",", include_header: Boolean=false, num_files: Int=0): Unit = {
         var new_df: DataFrame = null
 
         if (num_files >= 1) {
@@ -83,11 +84,13 @@ object IndexUtil {
             new_df.
             write.
             option("header", true).
+            option("delimiter", delimiter).
             csv(path)
         }
         else {
             new_df.
             write.
+            option("delimiter", delimiter).
             csv(path)
         }
     }
