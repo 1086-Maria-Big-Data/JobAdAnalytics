@@ -27,12 +27,13 @@ object FilteredIndex {
 
     return df
       .select("url_surtkey", "fetch_time", "url", "content_mime_type", "fetch_status", "content_digest", "fetch_redirect", "warc_segment", "warc_record_length", "warc_record_offset", "warc_filename")
-      .where(col("crawl") === "CC-MAIN-2021-10" && col("subset") === "warc").cache
-      .where(col("fetch_status") === 200).cache
-      .where(col("content_languages") === "eng").cache
-      .where(col("content_mime_type") === "text/html")
-      .where(col("url_host_tld") === "com")
-      .where(col("url_path").rlike("(?i)^(?=.*(jobs\\.|careers\\.|/job[s]{0,1}/|/career[s]{0,1}/))(?=.*(" + techJobTerms.mkString("|") + ")).*$")).cache
+      .where(col("crawl") === "CC-MAIN-2021-10" &&
+        col("subset") === "warc" &&
+        col("fetch_status") === 200 &&
+        col("content_languages") === "eng" &&
+        col("content_mime_type") === "text/html" &&
+        col("url_host_tld") === "com" &&
+        col("url_path").rlike("(?i)^(?=.*(jobs\\.|careers\\.|/job[s]{0,1}/|/career[s]{0,1}/))(?=.*(" + techJobTerms.mkString("|") + ")).*$")).cache
   }
 
   def get(): RDD[WarcRecord] = {
