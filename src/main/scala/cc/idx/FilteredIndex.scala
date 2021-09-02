@@ -20,8 +20,7 @@ object FilteredIndex {
    * method for debugging/improving our filters.
    *  */
 
-  //def filter(initial_partition: Int=256, final_partition: Int=16): DataFrame = {
-  def filter(initial_partition: Int=256): DataFrame = {
+  def filter(initial_partition: Int=256, final_partition: Int=16): DataFrame = {
     /** Filters the CCIndex with mutually agreed filters that should work for all our queries.
      *
      * @param intial_partition - the number of partitions to sort the CCIndex by for processing
@@ -38,8 +37,8 @@ object FilteredIndex {
       .where(col("content_languages") === "eng").cache
       .where(col("content_mime_type") === "text/html")
       .where(col("url_host_tld") === "com")
-      .where(col("url_path").rlike("(?i)^(?=.*(jobs\\.|careers\\.|/job[s]{0,1}/|/career[s]{0,1}/))(?=.*(" + techJobTerms.mkString("|") + ")).*$"))
-      //.repartition(final_partition)
+      .where(col("url_path").rlike("(?i)^(?=.*(job[s]{0,1}\\.|career[s]{0,1}\\.|/job[s]{0,1}/|/career[s]{0,1}/))(?=.*(" + techJobTerms.mkString("|") + ")).*$"))
+      .repartition(final_partition)
   }
 
   def get(): RDD[WarcRecord] = {
