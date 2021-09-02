@@ -37,9 +37,9 @@ object AppSparkSession {
             .set("spark.kryoserializer.buffer.max", "512")
 
 
-        val props = Util.loadConfig()
-        val access_key = props.getProperty("AWS_ACCESS_KEY_ID")
-        val access_secret = props.getProperty("AWS_SECRET_ACCESS_KEY")
+         val props = Util.loadConfig()
+         val access_key = props.getProperty("AWS_ACCESS_KEY_ID")
+         val access_secret = props.getProperty("AWS_SECRET_ACCESS_KEY")
 
         System.setProperty("com.amazonaws.services.s3.enableV4", "true")
 
