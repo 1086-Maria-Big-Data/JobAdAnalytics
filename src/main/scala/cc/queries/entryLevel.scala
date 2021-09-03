@@ -7,9 +7,13 @@ import org.archive.archivespark.functions._
 import org.archive.archivespark.specific.warc._
 import org.archive.archivespark.specific.warc.functions._
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.types._
+
+
 
 object entryLevel extends Queries {
-  //unless you want it to hang forever comment out the following when on local:
+
+  //may need to adjust following especicially on local for optimization:
   //config.set("fs.s3a.multipart.size", "100")
   // config.set("fs.s3a.threads.core", "10")
   // config.set("fs.s3a.block.size", "32") in AppSpark Session also this may fix Amazon Jave Heap error too
@@ -18,61 +22,47 @@ object entryLevel extends Queries {
   //still need to do some optimizations this version is easiest to run on AWS, others take awhile
 
   def main(args: Array[String]): Unit = {
+
     //a very fast way to filter out all entry level not requiring experience with example for one file test case
     val spark = AppSparkSession()
-    //example file and in full example we bring in all paths after index specifies them
-
+    var list1:List[Double]=List()
+    var list2:List[Double]=List()
+    var list3:List[Double]=List()
+    //100 example WARC files used
+    //val df=spark.read.csv(path="s3://maria-1086/Testing/will_testing/part100.csv")
+    //val df = spark.read.csv("input/part100.csv")
+    //val ArrayFilesPaths=df.collect.map(r=>r.toString)
+    //println(ArrayFilesPaths.length)
+    //ArrayFilesPaths.foreach(println)
     //in this example we use two files
-    val IndexListT=spark.sparkContext.parallelize(Seq("s3a://commoncrawl/crawl-data/CC-MAIN-2016-36/segments/1471982290442.1/warc/CC-MAIN-20160823195810-00000-ip-10-153-172-175.ec2.internal.warc.gz",
-      "s3a://commoncrawl/crawl-data/CC-MAIN-2014-23/segments/1405997885796.93/warc/CC-MAIN-20140722025805-00016-ip-10-33-131-23.ec2.internal.warc.gz"),2)
-    val IndexListTStr:Array[String]=IndexListT.collect
+    //remove "[" from file and add on "s3a://commoncrawl/" and take only first 2, set second slice number for
+    //file number from part100.csv if using from file or uncomment s3 with file to use on Amazon
+    //uncomment file if using from file but can just use below for quick test
+    val IndexListTStr:Array[String]=Array("s3a://commoncrawl/crawl-data/CC-MAIN-2016-36/segments/1471982290442.1/warc/CC-MAIN-20160823195810-00000-ip-10-153-172-175.ec2.internal.warc.gz",
+      "s3a://commoncrawl/crawl-data/CC-MAIN-2014-23/segments/1405997885796.93/warc/CC-MAIN-20140722025805-00016-ip-10-33-131-23.ec2.internal.warc.gz")
+    //val IndexListTStr:Array[String]=ArrayFilesPaths.slice(0,2).map(r=>"s3a://commoncrawl/"++r.slice(1,r.length-1))
+    println(IndexListTStr.length)
+
     for(i<- 0 to (IndexListTStr.length-1)){
       println(IndexListTStr(i))
-      var rdd1:RDD[WarcRecord]=WarcUtil.load(IndexListTStr(i))
-      val xxt=rdd1.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.take(10000).map{r=>r.split(" ").mkString("Array(", ", ", ")")}.filter{
+      val rdd1:RDD[WarcRecord]=WarcUtil.load(IndexListTStr(i))
+      val xxt=rdd1.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.take(10000).filter{
         f=> f.contains("entry-level")|| f.contains("entry level")}
       val xxt2=xxt.filter(f=> f.contains("experience"))
       val xxt3=xxt2.filter(f=> !f.contains("no experience"))
 
-      println(xxt.length)
-      println(xxt3.length)
-      println(xxt3.length.toDouble/xxt.length.toDouble)
+      list1=list1++List(xxt.length.toDouble)
+      list2=list2++List(xxt3.length.toDouble)
+      list3=list3++List((xxt3.length.toDouble/xxt.length.toDouble)*100)
+
+      println(xxt.length.toString++","++ xxt3.length.toString++","++(xxt3.length.toDouble/xxt.length.toDouble).toString)
+
     }
-
-
-    //just examples I have been using
-
-    //val rdd = WarcUtil.load("s3a://commoncrawl/crawl-data/CC-MAIN-2016-36/segments/1471982290442.1/warc/CC-MAIN-20160823195810-00000-ip-10-153-172-175.ec2.internal.warc.gz")
-    //val rdd1=WarcUtil.load(path="s3a://commoncrawl/crawl-data/CC-MAIN-2014-23/segments/1405997885796.93/warc/CC-MAIN-20140722025805-00016-ip-10-33-131-23.ec2.internal.warc.gz")
-
-    //val countPart=rdd.getNumPartitions
-    //println(countPart)
-    //println("will2")
-
-    //just a test may need more memory of kryo serializer for below to work, already increased to 512mb
-    //val rdd2=rdd.repartition(numPartitions=2)
-    //rdd.take(5).map(x1=>SuperWarc(x1)).foreach{r =>println(r.payload(textOnly = true).split(" ").mkString("Array(", ", ", ")"))}
-
-    //println(rdd2.partitions.length)
-
-    //just a test
-    //may need more memory of kryo serializer for below to work
-    //val xx2=rdd.collect.map(x1=>SuperWarc(x1)).map{r =>(r.payload(textOnly = true).split(" ").mkString("Array(", ", ", ")").contains("Comments"))}
-    //println(xx2.count(_==true))
-
-    //below works make sure .set("spark.kryoserializer.buffer.max.mb", "512")
-    //println(rdd.count)
-    //val xxt=rdd.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.take(5).map{r=>r.split(" ").mkString("Array(", ", ", ")").contains("Comments")}
-    //println(xxt.count(_==true))
-
-    //val xxt=rdd.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.collect.map{r=>r.split(" ").mkString("Array(", ", ", ")")}.filter{
-    //f=> f.contains("entry-level")|| f.contains("entry level")}
-    //val xxt2=xxt.filter(f=> f.contains("experience"))
-    //val xxt3=xxt2.filter(f=> !f.contains("no experience"))
-
-    //println(xxt.length)
-    //println(xxt3.length)
-    //println(xxt3.length.toDouble/xxt.length.toDouble)
+    val Total=(list1,list2,list3).zipped.toList
+    val dftoWrite = spark.createDataFrame(Total).toDF("Total Entry-Level Tech Jobs", "Entry-Level Exp. Req.","Percent Requiring Exp.")
+    dftoWrite.show()
+    dftoWrite.coalesce(1).write.format("csv").option("header","true").mode("Overwrite").save("/output/testing")
+    //dftoWrite.coalesce(1).write.format("csv").option("header", "true").mode("Overwrite").save("s3a://maria-1086/Testing/will_testing/newresults")
 
     spark.stop
     System.exit(0)
