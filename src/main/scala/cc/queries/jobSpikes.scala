@@ -17,6 +17,8 @@ import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
 
 object jobSpikes extends Queries {
+
+     val spark = AppSparkSession()
     
     def partitionByMonth(): Unit = {
         val spark = AppSparkSession()
@@ -28,16 +30,18 @@ object jobSpikes extends Queries {
         }
     }
 
-    def jobSpikesByJob(path:String): Unit = {
+    def jobSpikesByJob(): Unit = {
         val spark = AppSparkSession()
-        val df = spark.read.format("csv").option("header", "true").load(path)
-        val df2 = 
-        df.createOrReplaceTempView("dat")
-        spark.sql("SELECT (select count(url) from dat where LOWER(url) like '%java%' and LOWER(url) not like '%javascript%') as java, (SELECT count(url) from dat where LOWER(url) like '%python%') as python, (SELECT count(url) from dat where LOWER(url) like '%scala%') as scala, (SELECT count(url) from dat where LOWER(url) like '%matlab%') as matlab, (SELECT count(url) from dat where LOWER(url) like '%sql%') as sql from dat limit 1").show()
+        //val df = spark.sqlContext.read.option("header", true).schema(IndexUtil.schema).csv("s3a://maria-1086/TeamQueries/job-posting-spikes/2021/**/*.csv")
+        val df = spark.read.format("csv").option("header", "true").load("s3a://maria-1086/TeamQueries/job-posting-spikes/2021/**/*.csv")
+        for(x <- 1 to 12){
+            df.createOrReplaceTempView("dat")
+            val df_jobs = spark.sql("SELECT (select count(url) from dat where LOWER(url) like '%java%' and LOWER(url) not like '%javascript%') as java, (SELECT count(url) from dat where LOWER(url) like '%python%') as python, (SELECT count(url) from dat where LOWER(url) like '%scala%') as scala, (SELECT count(url) from dat where LOWER(url) like '%matlab%') as matlab, (SELECT count(url) from dat where LOWER(url) like '%sql%') as sql from dat limit 1")
+            IndexUtil.write(df_jobs, "s3a://maria-1086/TeamQueries/job-posting-spikes/mark_test/2021/%02".format(x))
+        }
     }
         
     def main(args: Array[String]): Unit = {
-        val path = "s3a://maria-1086/Testing/Mark-Testing/part-00001-bb6fa4ba-4e14-49d3-985c-e570505dc35d-c000.csv"
-        jobSpikesByJob(path)
+        jobSpikesByJob()
     }
 }
