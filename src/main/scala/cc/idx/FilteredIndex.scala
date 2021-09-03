@@ -50,7 +50,7 @@ object FilteredIndex {
         col("url_host_tld") === "com" &&
         col("fetch_status") === 200 &&
         col("content_mime_type") === "text/html" &&
-        col("url_path").rlike("(?i)^(?=.*(job[s]{0,1}\\.|career[s]{0,1}\\.|/job[s]{0,1}/|/career[s]{0,1}/))") &&
+        (col("url_path").contains("job") || col("url_path").contains("jobs") || col("url_path").contains("career") || col("url_path").contains("careers")) &&
         filterString_udf(col("url_path")) === true)
     
     if (final_partitions > 0)
