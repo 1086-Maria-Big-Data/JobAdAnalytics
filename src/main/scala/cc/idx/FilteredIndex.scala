@@ -17,7 +17,7 @@ object FilteredIndex {
    *
    * FilteredIndex.filter() can also be used to return a DataFrame of filtered records.
    *
-   * FilteredIndex.view_sample() prints the output of the first 100 records of FilteredIndex.filter() and is a convenience
+   * FilteredIndex.view_sample(N) prints the output of the first N records of FilteredIndex.filter() and is a convenience
    * method for debugging/improving our filters.
    *  */
 
@@ -35,9 +35,9 @@ object FilteredIndex {
     val techJob = techJobTerms.map(_.toLowerCase)
 
     def filterString(line: String): Boolean = {
-      line.split("(/|_|%|-|\\?|=|\\(|\\)|&|\\+|\\.)").collectFirst{
+      line.split("(/|_|%|-|\\?|=|\\(|\\)|&|\\+|\\.)").find{
         case word => techJob.contains(word.toLowerCase)
-      }.getOrElse(false)
+      }.isDefined
     }
 
     val filterString_udf = udf(filterString _)
@@ -52,7 +52,7 @@ object FilteredIndex {
         col("content_mime_type") === "text/html" &&
         (col("url_path").contains("job") || col("url_path").contains("jobs") || col("url_path").contains("career") || col("url_path").contains("careers")) &&
         filterString_udf(col("url_path")) === true)
-    
+
     if (final_partitions > 0)
       return res.repartition(final_partitions)
     
@@ -77,7 +77,8 @@ object FilteredIndex {
     .foreach(row => row.toSeq.foreach(println))
   }
 
-  val techJobTerms = HashSet("embedded",
+  val techJobTerms = HashSet(
+    "embedded",
     "printer",
     "imaging",
     "devops",

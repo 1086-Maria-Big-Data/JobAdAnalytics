@@ -88,7 +88,7 @@ object CCIdxMain {
 
         crawls.foreach(
             crawl =>
-                IndexUtil.write(FilteredIndex.filter(crawl), "s3a://maria-1086/FilteredIndex/" + crawl, "\t", true, 24)
+                IndexUtil.write(FilteredIndex.filter(crawl), "s3a://maria-1086/FilteredIndex/" + crawl, ",", true, 16)
         )
     }
 }
