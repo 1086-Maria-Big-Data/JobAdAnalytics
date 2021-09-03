@@ -8,6 +8,11 @@ import org.archive.archivespark.specific.warc._
 import org.archive.archivespark.specific.warc.functions._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
+import org.apache.hadoop.conf.Configuration
+import java.net.URI
+import org.apache.spark.deploy.SparkHadoopUtil
 
 
 
@@ -25,28 +30,27 @@ object entryLevel extends Queries {
 
     //a very fast way to filter out all entry level not requiring experience with example for one file test case
     val spark = AppSparkSession()
+
     var list1:List[Double]=List()
     var list2:List[Double]=List()
     var list3:List[Double]=List()
-    //100 example WARC files used
-    //val df=spark.read.csv(path="s3://maria-1086/Testing/will_testing/part100.csv")
-    //val df = spark.read.csv("input/part100.csv")
-    //val ArrayFilesPaths=df.collect.map(r=>r.toString)
-    //println(ArrayFilesPaths.length)
-    //ArrayFilesPaths.foreach(println)
-    //in this example we use two files
-    //remove "[" from file and add on "s3a://commoncrawl/" and take only first 2, set second slice number for
-    //file number from part100.csv if using from file or uncomment s3 with file to use on Amazon
-    //uncomment file if using from file but can just use below for quick test
-    val IndexListTStr:Array[String]=Array("s3a://commoncrawl/crawl-data/CC-MAIN-2016-36/segments/1471982290442.1/warc/CC-MAIN-20160823195810-00000-ip-10-153-172-175.ec2.internal.warc.gz",
-      "s3a://commoncrawl/crawl-data/CC-MAIN-2014-23/segments/1405997885796.93/warc/CC-MAIN-20140722025805-00016-ip-10-33-131-23.ec2.internal.warc.gz")
-    //val IndexListTStr:Array[String]=ArrayFilesPaths.slice(0,2).map(r=>"s3a://commoncrawl/"++r.slice(1,r.length-1))
-    println(IndexListTStr.length)
 
-    for(i<- 0 to (IndexListTStr.length-1)){
-      println(IndexListTStr(i))
-      val rdd1:RDD[WarcRecord]=WarcUtil.load(IndexListTStr(i))
-      val xxt=rdd1.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.take(10000).filter{
+
+    //val sh=SparkHadoopUtil.get.conf
+    //val path = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
+    //val fileSystem = FileSystem.get(URI.create(path), sh)
+    //val it = fileSystem.listFiles(new Path(path), true)
+   //while (it.hasNext()) {
+      //println(it.toString)
+    //}
+
+    val pathList:List[String]=List("s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21/part-00000-bd00e7f8-5888-4093-aca8-e69ea6a0deea-c000.csv")
+    //val rdd2= WarcUtil.loadFiltered(spark.read.option("header", true).csv("s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21/part-00000-bd00e7f8-5888-4093-aca8-e69ea6a0deea-c000.csv"),enrich_payload=true)
+
+    for(i<- 0 to (pathList.length-1)){
+      println(pathList(i))
+      val rdd2= WarcUtil.loadFiltered(spark.read.option("header", true).csv(path=pathList(i)),enrich_payload=true)
+      val xxt=rdd2.take(5).map(x1=>SuperWarc(x1)).map{r =>r.payload(textOnly = true)}.filter{
         f=> f.contains("entry-level")|| f.contains("entry level")}
       val xxt2=xxt.filter(f=> f.contains("experience"))
       val xxt3=xxt2.filter(f=> !f.contains("no experience"))
