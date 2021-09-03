@@ -60,7 +60,7 @@ object infrequentJobs extends Queries {
     }
     val percentagesDF = spark.createDataFrame(mapMoPerc.toSeq).toDF("Month", "Percentage of Infrequent Posters")
 
-    IndexUtil.write(percentagesDF, "s3a://maria-1086/Testing/gabriel-testing/infrequent-out" , include_header=true, num_files = 1)
+    IndexUtil.write(percentagesDF, "s3a://maria-1086/Testing/sammyTesting/infrequent-out" , include_header=true, num_files = 1)
   }
 
   /** Returns the percentage of Infrequent Job Posters (companies that post 3 or less jobs per month) given

@@ -65,7 +65,7 @@ object CCIdxMain {
                 .toSeq
         )
 
-        IndexUtil.write(wordCount_df, "s3a://maria-1086/Devin-Testing/write-test/out-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=1)
+        IndexUtil.write(wordCount_df, "s3a://maria-1086/Testing/sammyTesting/outputs" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=1)
 
         System.exit(0)
     }
@@ -118,6 +118,6 @@ object TestExtract {
                  .reduceByKey(_ + _)
          )
 
-         IndexUtil.write(wordCount_df2, "s3a://maria-1086/Vince-Test-CCIdxMain/outputs/" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=64)
+         IndexUtil.write(wordCount_df2, "s3a://maria-1086/Testing/sammyTesting/outputs" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=64)
     }
 }
