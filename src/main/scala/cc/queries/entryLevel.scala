@@ -8,21 +8,78 @@ import org.archive.archivespark.specific.warc._
 import org.archive.archivespark.specific.warc.functions._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
+import org.joda.time.{DateTime, DateTimeZone}
 
+import scala.util.matching.Regex
 
 
 object entryLevel extends Queries {
 
-  //may need to adjust following especicially on local for optimization:
-  //config.set("fs.s3a.multipart.size", "100")
+  // To run on local machine without hanging, go into SparkSession class as comment out the following lines:
+  // config.set("fs.s3a.multipart.size", "100")
   // config.set("fs.s3a.threads.core", "10")
-  // config.set("fs.s3a.block.size", "32") in AppSpark Session also this may fix Amazon Jave Heap error too
-  //does not hang on Amazon though
-
-  //still need to do some optimizations this version is easiest to run on AWS, others take awhile
+  // config.set("fs.s3a.block.size", "32") in AppSpark Session also this may fix Amazon Java Heap error too
+  // Leave uncommented if running on EMR
 
   def main(args: Array[String]): Unit = {
 
+    var start = getTime()
+
+    //Create the spark session
+    val spark = AppSparkSession()
+
+    //Read csv index of filtered warc files based on urls containing tech job/career related terms from the s3 bucket
+    println("-- Loading CSV File from S3 Bucket --")
+    val df = spark.read
+      .option("header", true)
+      .option("inferSchema",true)
+      .csv("s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21/part-00000-bd00e7f8-5888-4093-aca8-e69ea6a0deea-c000.csv")
+
+    //RDD of WARC Records
+    println("-- Loading Data from Common Crawl based on URLs in CSV --")
+    val rdd = WarcUtil.loadFiltered(df)
+
+    //Extract the html text from the WARCs as an array of String
+    println("-- Filtering RDD Data based on entry level key word --")
+    val entry_level_job_site_listings = rdd
+      .take(750)                                                  //Create an array of WARC records
+      .map(warc => SuperWarc(warc))                             //Loop through the array of WARCs and turn them into Super-WARCs
+      .map{super_warc => super_warc.payload(textOnly = true)}   //The payload function returns all of the html text of the super-warc record
+      .filter{ text => text.contains("entry-level") || text.contains("entry level")}
+
+    println("Number of Sites containing entry level positions is: " + entry_level_job_site_listings.length)
+
+    println("-- Filtering Data based on list of regex --")
+    val regex_arr = Array("no experience".r)
+    val results = filter_by_regex(entry_level_job_site_listings, regex_arr)
+    println("The number of filtered results is: " + results.length)
+
+    //Close the spark session
+    spark.stop
+
+    var end = getTime()
+    var diff = end - start
+    println("Time Elapsed: " + f"$diff%1.3f" + " minutes")
+
+    System.exit(0)
+  }
+
+  def filter_by_regex(str_arr:Array[String], regex_arr:Array[Regex]): Array[String] = {
+    var results = str_arr
+
+    for(i <- 0 to regex_arr.length - 1) {
+      val reg = regex_arr(i)
+      results = results.filter{entry => reg.findFirstIn(entry).isDefined}
+    }
+
+    return results
+  }
+
+  def getTime(): Double = {
+    return DateTime.now(DateTimeZone.UTC).getMillis() / 1000.0 / 60.0
+  }
+
+  def wills_code(): Unit = {
     //a very fast way to filter out all entry level not requiring experience with example for one file test case
     val spark = AppSparkSession()
     var list1:List[Double]=List()
@@ -67,4 +124,5 @@ object entryLevel extends Queries {
     spark.stop
     System.exit(0)
   }
+
 }
