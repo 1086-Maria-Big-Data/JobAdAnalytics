@@ -35,7 +35,7 @@ object FilteredIndex {
     val techJob = techJobTerms.map(_.toLowerCase)
 
     def filterString(line: String): Boolean = {
-      line.split("(/|,|%|-)").collectFirst{
+      line.split("(/|_|%|-|\\?|=|\\(|\\)|&|\\+|\\.)").collectFirst{
         case word => techJob.contains(word.toLowerCase)
       }.getOrElse(false)
     }
