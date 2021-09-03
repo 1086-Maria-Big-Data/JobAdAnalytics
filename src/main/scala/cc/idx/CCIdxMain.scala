@@ -104,9 +104,9 @@ object TestExtract {
 
          val df = spark.read.schema(IndexUtil.schema).parquet(tablePath)
 
-         val forCdxRec = df
-             .select("url_surtkey", "fetch_time", "url", "content_mime_type", "fetch_status", "content_digest", "fetch_redirect", "warc_segment", "warc_record_length", "warc_record_offset", "warc_filename")
-             .where(col("crawl") === "CC-MAIN-2021-10" && col("subset") === "warc" && col("content_languages") === "eng" && col("url_path").rlike(".*(/job/|/jobs/|/careers/|/career/).*"))
+        val forCdxRec = df
+          .select("url_surtkey", "fetch_time", "url", "content_mime_type", "fetch_status", "content_digest", "fetch_redirect", "warc_segment", "warc_record_length", "warc_record_offset", "warc_filename")
+          .where(col("crawl") === "CC-MAIN-2021-10" && col("subset") === "warc" && col("content_languages") === "eng" && col("url_path").rlike(".*(/job/|/jobs/|/careers/|/career/).*"))
 
          val warc_rdd2 = WarcUtil.loadFiltered(forCdxRec).repartition(640)
 
