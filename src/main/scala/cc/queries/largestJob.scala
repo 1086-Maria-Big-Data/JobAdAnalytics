@@ -6,10 +6,8 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, desc, udf}
 import spark.session.AppSparkSession
 
-
-
 object largestJob extends Queries {
-  def main(args: Array[String]): Unit = {
+def main(args: Array[String]): Unit = {
     run()
   }
   override def run(): Unit = {

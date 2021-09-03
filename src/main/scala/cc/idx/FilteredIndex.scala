@@ -6,6 +6,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, udf}
 import org.archive.archivespark.specific.warc.WarcRecord
 import spark.session.AppSparkSession
+import scala.collection.immutable.HashSet
 
 object FilteredIndex {
   /**
@@ -16,68 +17,80 @@ object FilteredIndex {
    *
    * FilteredIndex.filter() can also be used to return a DataFrame of filtered records.
    *
-   * FilteredIndex.view_sample() prints the output of the first 100 records of FilteredIndex.filter() and is a convenience
+   * FilteredIndex.view_sample(N) prints the output of the first N records of FilteredIndex.filter() and is a convenience
    * method for debugging/improving our filters.
    *  */
 
-  def filter(initial_partition: Int=256, final_partition: Int=16): DataFrame = {
+  def filter(crawl: String, initial_partitions: Int=256, final_partitions: Int=0): DataFrame = {
     /** Filters the CCIndex with mutually agreed filters that should work for all our queries.
-     *
-     * @param intial_partition - the number of partitions to sort the CCIndex by for processing
-     * @param final_partition - the number of partitions to pass into WarcUtil.loadfiltered
+     * @param crawl - the crawl to filter the index by. Must be one of cc.idx.IndexUtil.crawls
+     * @param intial_partitions - the number of partitions to sort the CCIndex by for processing
+     * @param final_partitions - the number of to repartition to after processing if > 0. Else, no repartitioning is done.
      */
+
     val spark = AppSparkSession()
 
-    val df = IndexUtil.load(spark).repartition(initial_partition)
+    val df = IndexUtil.load(spark).repartition(initial_partitions)
 
     val techJob = techJobTerms.map(_.toLowerCase)
 
     def filterString(line: String): Boolean = {
-      line.split("(/|,|%|-)").collectFirst{
+      line.split("(/|_|%|-|\\?|=|\\(|\\)|&|\\+|\\.)").find{
         case word => techJob.contains(word.toLowerCase)
-      }.getOrElse(false)
+      }.isDefined
     }
 
     val filterString_udf = udf(filterString _)
 
-
-    return df
-      .where(col("fetch_status") === 200 &&
-        col("content_mime_type") === "text/html" &&
-        col("content_languages") === "eng" &&
+    val res = df
+      .where(
+        col("crawl") === crawl &&
         col("subset") === "warc" &&
-        col("crawl") === "CC-MAIN-2021-10" &&
+        col("content_languages") === "eng" &&
         col("url_host_tld") === "com" &&
-        col("url_path").rlike("(?i)^(?=.*(job[s]{0,1}\\.|career[s]{0,1}\\.|/job[s]{0,1}/|/career[s]{0,1}/))") &&
-        filterString_udf(col("url_path")) === true)
-      //.repartition(final_partition)
+        col("fetch_status") === 200 &&
+        col("content_mime_type") === "text/html" &&
+        (col("url_path").contains("job") || col("url_path").contains("jobs") || col("url_path").contains("career") || col("url_path").contains("careers")) &&
+        filterString_udf(col("url_path")) === true
+      )
+
+    if (final_partitions > 0)
+      return res.repartition(final_partitions)
+    
+    return res
   }
 
-  def get(): RDD[WarcRecord] = {
-    return WarcUtil.loadFiltered(filter())
+  def get(crawl: String): RDD[WarcRecord] = {
+    /** Wrapper function to get a filtered index & load the corresponding WARC records.
+      *
+      * @param crawl - the crawl to filter the index by. Must be one of cc.idx.IndexUtil.crawls
+      */
+    return WarcUtil.loadFiltered(filter(crawl))
   }
 
-  def view_sample():Unit ={
-    filter().take(10000).foreach(row => row.toSeq.foreach(println))
+  def view_sample(crawl: String, num_samples: Int=1000): Unit = {
+    /** Function to view a sample of the filtered index records.
+      * 
+      * @param crawl - the crawl to filter the index by. Must be one of cc.idx.IndexUtil.crawls
+      */
+    filter(crawl)
+    .take(num_samples)
+    .foreach(row => row.toSeq.foreach(println))
   }
 
-  val techJobTerms = Seq("embedded",
-    "printer",
+  val techJobTerms = HashSet(
+    "embedded",
     "imaging",
     "devops",
     "database",
-    "program",
     "network",
-    "accounting",
     "informatics",
     "ios",
     "prolog",
     "sql",
-    "test",
     "labview",
     "aws",
     "ocaml",
-    "design",
     "firewall",
     "oracle",
     "rust",
@@ -86,82 +99,55 @@ object FilteredIndex {
     "server",
     "powershell",
     "css",
-    "applications",
     "system",
-    "scientific",
     "graphic",
-    "professor",
     "clojure",
     "matlab",
-    "master",
     "integratordata",
-    "integration",
     "uat",
     "dba",
     "systems",
     "pytorch",
-    "project",
     "unix",
-    "steward",
     "gis",
     "programming",
-    "domain",
     "react",
     "aspnet",
     "soa",
     "tensorflow",
     "data",
-    "intelligence",
     "gcp",
     "emr",
-    "it",
     "cobol",
     "networking",
-    "qa",
     "voip",
-    "google",
     "pascal",
     "programmer",
     "typescript",
-    "associate",
     "crm",
-    "risk",
     "haskell",
-    "lotus",
+    "risc",
     "wireless",
     "sqoop",
     "computer",
     "processing",
     "perl",
     "javaee",
-    "vice",
-    "decision",
     "firmware",
-    "instructor",
-    "service",
     "sparksql",
-    "testing",
     "dart",
-    "communications",
     "java",
     "net",
-    "tester",
     "telecommunications",
-    "science",
     "ssrs",
-    "expert",
-    "technology",
     "excel",
     "web",
-    "exchange",
     "javaux",
     "hardware",
     "internet",
     "kafka",
-    "logo",
     "cissp",
     "machinelearning",
-    "implementation",
     "machine",
     "scrum",
     "analysttechnical",
@@ -170,19 +156,15 @@ object FilteredIndex {
     "ux",
     "cybersecurity",
     "apache",
-    "representative",
-    "processor",
     "vbscript",
-    "deep",
     "spark",
     "julia",
-    "cyber",
+    "cyberintelligence",
     "cerner",
-    "technician",
     "ehr",
     "microstrategy",
+    "microservices",
     "hive",
-    "php",
     "mainframe",
     "aix",
     "lua",
@@ -190,9 +172,20 @@ object FilteredIndex {
     "software",
     "scala",
     "deeplearning",
-    "tech",
     "visual",
     "linux",
+    "postgres",
+    "postgresql",
+    "nosql",
+    "mssql",
+    "redis",
+    "cassandradb",
+    "mariadb",
+    "elasticsearch",
+    "fedora",
+    "freebsd",
+    "agile",
+    "centos",
     "powerpoint",
     "telecom",
     "groovy",
@@ -201,7 +194,6 @@ object FilteredIndex {
     "keras",
     "backend",
     "python",
-    "hack",
     "sklearn",
     "zookeeper",
     "mysql",
@@ -216,36 +208,55 @@ object FilteredIndex {
     "microsoft",
     "c#",
     "kotlin",
-    "html",
     "ruby",
-    "platform",
-    "basic",
+    "visualbasic",
     "mule",
     "frontend",
     "cio",
     "fortran",
     "swift",
-    "game",
     "apex",
-    "architect",
     "arduino",
-    "analyst",
     "mainframe",
     "ubuntu",
-    "games",
     "digital",
-    "functional",
-    "auditor",
-    "cryptographer",
-    "windows",
     "ms",
     "bash",
     "javascript",
-    "pl",
-    "analytic",
     "android",
     "hdfs",
     "mlops",
     "technical",
-    "sharepoint")
+    "sharepoint",
+    "f#",
+    "gwbasic",
+    "jscript",
+    "mongodb",
+    "couchdb",
+    "firestore",
+    "firebase",
+    "angular",
+    "webdeveloper",
+    "azure",
+    "salesforce",
+    "pega",
+    "fullstack",
+    "ai",
+    "computing",
+    "cloud",
+    "ui",
+    "ux",
+    "idris",
+    "agda",
+    "vba",
+    "tableau",
+    "dotnet",
+    "dba",
+    "redhat",
+    "purescript",
+    "frege",
+    "q#",
+    "rpa",
+    "nodejs"
+    )
 }
