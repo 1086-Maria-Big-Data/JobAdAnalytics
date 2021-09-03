@@ -15,13 +15,12 @@ import cc.idx._
 import org.apache.spark.sql.DataFrame
 import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
+import org.apache.spark.sql.SparkSession
 
 object jobSpikes extends Queries {
 
-    val spark = AppSparkSession()
     
-    def partitionByMonthAndYear(): Unit = {
-        val spark = AppSparkSession()
+    def partitionByMonthAndYear(spark: SparkSession): Unit = {
         val df = spark.sqlContext
             .read
             .option("header", true)
@@ -33,8 +32,7 @@ object jobSpikes extends Queries {
         IndexUtil.writeParquet(df, "s3a://maria-1086/TeamQueries/job-posting-spikes/parquet", partition_cols=Seq("fetch_year", "fetch_month"))
     }
 
-    def jobSpikesByJob(): Unit = {
-        val spark = AppSparkSession()
+    def jobSpikesByJob(spark: SparkSession): Unit = {
         //val df = spark.sqlContext.read.option("header", true).schema(IndexUtil.schema).csv("s3a://maria-1086/TeamQueries/job-posting-spikes/2021/**/*.csv")
         val df = spark.read.format("csv").option("header", "true").load("s3a://maria-1086/TeamQueries/job-posting-spikes/2021/**/*.csv")
         for(x <- 1 to 12){
@@ -46,6 +44,12 @@ object jobSpikes extends Queries {
         
     def main(args: Array[String]): Unit = {
         // jobSpikesByJob()
-        partitionByMonthAndYear()
+        val spark = AppSparkSession()
+        val df = spark.sqlContext
+        .read
+        .option("basePath", "s3a://maria-1086/TeamQueries/job-posting-spikes/parquet")
+        .parquet("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet/")
+
+        df.show
     }
 }
