@@ -12,6 +12,7 @@ src/main/resources/
 spark-warehouse/
 
 app.config
+null/
 
 
 .DS_Store
