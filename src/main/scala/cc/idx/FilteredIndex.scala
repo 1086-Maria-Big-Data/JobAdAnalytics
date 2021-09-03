@@ -34,18 +34,11 @@ object FilteredIndex {
 
     val techJob = techJobTerms.map(_.toLowerCase)
 
-    // def filterString(line: String): Boolean = {
-    //   line.split("(/|_|%|-|\\?|=|\\(|\\)|&|\\+|\\.)").find{
-    //     case word => techJob.contains(word.toLowerCase)
-    //   }.isDefined
-    // }
-
-  def filterString(line: String): Boolean = {
-      line.split("(/|_|%|-|\\?|=|\\(|\\)|&|\\+|\\.)").collectFirst{
+    def filterString(line: String): Boolean = {
+      line.split("(/|_|%|-|\\?|=|\\(|\\)|&|\\+|\\.)").find{
         case word => techJob.contains(word.toLowerCase)
-      }.getOrElse(false)
+      }.isDefined
     }
-
 
     val filterString_udf = udf(filterString _)
 
