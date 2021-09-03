@@ -18,25 +18,15 @@ import org.apache.spark.deploy.SparkHadoopUtil
 
 object entryLevel extends Queries {
 
-  //may need to adjust following especicially on local for optimization:
-  //config.set("fs.s3a.multipart.size", "100")
-  // config.set("fs.s3a.threads.core", "10")
-  // config.set("fs.s3a.block.size", "32") in AppSpark Session also this may fix Amazon Jave Heap error too
-  //does not hang on Amazon though
-
-  //still need to do some optimizations this version is easiest to run on AWS, others take awhile
 
   def main(args: Array[String]): Unit = {
 
-    //a very fast way to filter out all entry level not requiring experience with example for one file test case
     val spark = AppSparkSession()
 
     var list1:List[Double]=List()
     var list2:List[Double]=List()
     var list3:List[Double]=List()
 
-    //val fs = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfiguration)
-    //fs.listStatus(new Path(s"${hdfs-path}")).filter(_.isDir).map(_.getPath).foreach(println)
 
     val sh=SparkHadoopUtil.get.conf
     val path = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
@@ -46,17 +36,15 @@ object entryLevel extends Queries {
     val pathList:Array[String]=status.map(x=> x.getPath.toString).filter(x=>x.contains(".csv"))
     //pathList.foreach(println)
 
-    //val pathList:Array[String]=Array("s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21/part-00000-bd00e7f8-5888-4093-aca8-e69ea6a0deea-c000.csv")
-    //val rdd2= WarcUtil.loadFiltered(spark.read.option("header", true).csv("s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21/part-00000-bd00e7f8-5888-4093-aca8-e69ea6a0deea-c000.csv"),enrich_payload=true)
-
     for(i<- 0 to (pathList.length-1)){
+    //for(i<- 0 to 2){
       println(pathList(i))
       val pathToUse:String=pathList(i)
       val rdd2= WarcUtil.loadFiltered(spark.read.option("header", true).csv(path=pathToUse),enrich_payload=true)
-      val xxt=rdd2.take(1000).map(x1=>SuperWarc(x1)).map{r =>r.payload(textOnly = true)}.filter{
-        f=> f.contains("entry-level")|| f.contains("entry level")}
-      val xxt2=xxt.filter(f=> f.contains("experience"))
-      val xxt3=xxt2.filter(f=> !f.contains("no experience"))
+      val xxt=rdd2.take(100).map(x1=>SuperWarc(x1)).map{r =>r.payload(textOnly = true)}.filter{
+        f=> f.matches("entry-level")|| f.matches("entry level") }
+      val xxt2=xxt.filter(f=> f.contains("experience") || f.contains("Experience"))
+      val xxt3=xxt2.filter(f=> !f.contains("no experience") )
 
       list1=list1++List(xxt.length.toDouble)
       list2=list2++List(xxt3.length.toDouble)
@@ -70,6 +58,7 @@ object entryLevel extends Queries {
     dftoWrite.show()
     dftoWrite.coalesce(1).write.format("csv").option("header","true").mode("Overwrite").save("/output/testing")
     //dftoWrite.coalesce(1).write.format("csv").option("header", "true").mode("Overwrite").save("s3a://maria-1086/Testing/will_testing/newresults")
+    //dftoWrite.coalesce(1).write.format("csv").option("header", "true").mode("Overwrite").save("s3a://maria-1086/TeamQueries/entryLevel")
 
     spark.stop
     System.exit(0)
