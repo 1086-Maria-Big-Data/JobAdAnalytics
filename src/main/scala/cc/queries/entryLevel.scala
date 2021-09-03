@@ -11,7 +11,6 @@ import org.apache.spark.deploy.SparkHadoopUtil
 
 object entryLevel extends Queries {
 
-
   def main(args: Array[String]): Unit = {
    //xxt=rdd2.take(750) can be changed to desired number and output file should have correct location at bottom
     val spark = AppSparkSession()
@@ -29,21 +28,21 @@ object entryLevel extends Queries {
     val pathList:Array[String]=status.map(x=> x.getPath.toString).filter(x=>x.contains(".csv"))
     //pathList.foreach(println)
 
-    for(i<- 0 to (pathList.length-1)){
-    //for(i<- 0 to 5){
+    //for(i<- 0 to (pathList.length-1)){
+    for(i<- 0 to 1){
       println(pathList(i))
       val pathToUse:String=pathList(i)
       val rdd2= WarcUtil.loadFiltered(spark.read.option("header", true).csv(path=pathToUse),enrich_payload=true)
-      val xxt=rdd2.take(750).map(x1=>SuperWarc(x1)).map{r =>r.payload(textOnly = true)}.filter{
+      val xxt=rdd2.map(x1=>SuperWarc(x1)).map{r =>r.payload(textOnly = true)}.filter{
         f=> f.matches(".*[Ee]ntry-[Ll]evel.*")|| f.matches(".*[Ee]ntry [Ll]evel.*") }
       val xxt2=xxt.filter(f=> f.matches(".*[Ee]xperience.*"))
       val xxt3=xxt2.filter(f=> !f.matches(".*[Nn]o [Ee]xperience.*"))
 
-      list1=list1++List(xxt.length.toDouble)
-      list2=list2++List(xxt3.length.toDouble)
-      list3=list3++List((xxt3.length.toDouble/xxt.length.toDouble)*100)
+      list1=list1++List(xxt.count.toDouble)
+      list2=list2++List(xxt3.count.toDouble)
+      list3=list3++List((xxt3.count.toDouble/xxt.count.toDouble)*100)
 
-      println(xxt.length.toString++","++ xxt3.length.toString++","++(xxt3.length.toDouble/xxt.length.toDouble).toString)
+      println(xxt.count.toString++","++ xxt3.count.toString++","++(xxt3.count.toDouble/xxt.count.toDouble).toString)
 
     }
     val Total=(list1,list2,list3).zipped.toList
