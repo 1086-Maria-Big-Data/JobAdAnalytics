@@ -12,8 +12,16 @@ import org.apache.spark.sql.types._
 import scala.collection.mutable.ArrayBuffer
 
 object infrequentJobs extends Queries {
+
+  /** Main method. Identifies location of csv files to be read and writes to s3 with csv result.
+    *
+    * @param args
+    */
   def main(args: Array[String]): Unit = {
     val spark = AppSparkSession()
+
+    // CHANGE THIS IF YOU WANT TO WRITE TO A DIFFERENT FOLDER
+    val writePath = "s3a://maria-1086/Testing/gabriel-testing/infrequent-out-2"
 
     val crawls = Array("s3a://maria-1086/FilteredIndex/CC-MAIN-2020-05/*.csv",
       "s3a://maria-1086/FilteredIndex/CC-MAIN-2020-10/*.csv",
@@ -60,14 +68,21 @@ object infrequentJobs extends Queries {
     }
     val percentagesDF = spark.createDataFrame(mapMoPerc.toSeq).toDF("Month", "Percentage of Infrequent Posters")
 
-    IndexUtil.write(percentagesDF, "s3a://maria-1086/Testing/gabriel-testing/infrequent-out" , include_header=true, num_files = 1)
+    // Try catch block to handle any exceptions with writing to s3 bucket
+    try {
+      IndexUtil.write(percentagesDF, writePath, include_header = true, num_files = 1)
+    } catch {
+      case e: Throwable =>  {
+        println("COULD NOT PRINT TO S3!!!")
+      }
+    }
   }
 
   /** Returns the percentage of Infrequent Job Posters (companies that post 3 or less jobs per month) given
     * a csv index of a crawl.
     *
-    * @param path The file path to the csv to be read
-    * @return
+    * @param path The file path `String` to the csv to be read
+    * @return `Float`
     */
   def get_Infrequent_Perc(path: String): Float = {
     val spark = AppSparkSession()
