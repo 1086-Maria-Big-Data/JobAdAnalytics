@@ -37,9 +37,9 @@ object AppSparkSession {
             .set("spark.kryoserializer.buffer.max", "512")
 
 
-        val props = Util.loadConfig()
-        val access_key = props.getProperty("AWS_ACCESS_KEY_ID")
-        val access_secret = props.getProperty("AWS_SECRET_ACCESS_KEY")
+         val props = Util.loadConfig()
+         val access_key = props.getProperty("AWS_ACCESS_KEY_ID")
+         val access_secret = props.getProperty("AWS_SECRET_ACCESS_KEY")
 
         System.setProperty("com.amazonaws.services.s3.enableV4", "true")
 
@@ -52,9 +52,9 @@ object AppSparkSession {
             config.set("fs.s3a.secret.key", access_secret)
             config.set("fs.s3.awsAccessKeyId", access_key)
             config.set("fs.s3.awsSecretAccessKey", access_secret)            
-            config.set("fs.s3a.multipart.size", "100")
-            config.set("fs.s3a.threads.core", "10")
-            config.set("fs.s3a.block.size", "32")
+            //config.set("fs.s3a.multipart.size", "100")
+            //config.set("fs.s3a.threads.core", "10")
+            //config.set("fs.s3a.block.size", "32")
 
         val sparkhadoopconfig = SparkHadoopUtil.get.conf
             sparkhadoopconfig.set("fs.s3a.access.key", access_key)
