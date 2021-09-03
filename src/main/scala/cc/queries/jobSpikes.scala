@@ -9,7 +9,7 @@ import org.archive.archivespark.functions._
 import org.archive.archivespark.specific.warc._
 import org.archive.archivespark.specific.warc.functions._
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.functions.{month, col}
+import org.apache.spark.sql.functions.{year, month, col}
 import org.apache.spark.sql.types.{StructType, StructField, IntegerType, LongType, StringType, TimestampType, ShortType}
 import cc.idx._
 import org.apache.spark.sql.DataFrame
@@ -18,16 +18,19 @@ import java.time.LocalDateTime
 
 object jobSpikes extends Queries {
 
-     val spark = AppSparkSession()
+    val spark = AppSparkSession()
     
-    def partitionByMonth(): Unit = {
+    def partitionByMonthAndYear(): Unit = {
         val spark = AppSparkSession()
-        val df = spark.sqlContext.read.option("header", true).schema(IndexUtil.schema).csv("s3a://maria-1086/FilteredIndex/CC-MAIN-2021-**/*.csv")
-        var newDF = null.asInstanceOf[DataFrame]
-        for(x <- 1 to 12){
-            newDF = df.where(month(col("fetch_time"))===x)
-            IndexUtil.write(newDF, "s3a://maria-1086/TeamQueries/job-posting-spikes/2021/%02d".format(x), include_header=true, num_files=8)
-        }
+        val df = spark.sqlContext
+            .read
+            .option("header", true)
+            .schema(IndexUtil.schema)
+            .csv("s3a://maria-1086/FilteredIndex/CC-MAIN-202*-**/*.csv")
+            .withColumn("fetch_year", year(col("fetch_time")))
+            .withColumn("fetch_month", month(col("fetch_time")))
+
+        IndexUtil.writeParquet(df, "s3a://maria-1086/TeamQueries/job-posting-spikes/parquet", partition_cols=Seq("fetch_year", "fetch_month"))
     }
 
     def jobSpikesByJob(): Unit = {
@@ -42,6 +45,7 @@ object jobSpikes extends Queries {
     }
         
     def main(args: Array[String]): Unit = {
-        jobSpikesByJob()
+        // jobSpikesByJob()
+        partitionByMonthAndYear()
     }
 }

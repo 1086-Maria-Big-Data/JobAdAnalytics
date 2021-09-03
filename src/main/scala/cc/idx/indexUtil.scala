@@ -94,6 +94,27 @@ object IndexUtil {
             csv(path)
         }
     }
+
+    /** Writes a DataFrame to a Parquet
+      *
+      * @param df The DataFrame to be written
+      * @param path The ouput path for the parquet
+      * @param partition_cols The columns to be partitioned by. By default, no partitions are created.
+      */
+    def writeParquet(df: DataFrame, path: String, partition_cols: Seq[String]=null.asInstanceOf[Seq[String]]): Unit = {
+
+        if (partition_cols == null)
+            df.
+            write.
+            parquet(path)
+        
+        else
+            df.
+                write.
+                partitionBy(partition_cols:_*).
+                parquet(path)
+    }
+
     /**
      * Filters out invalid crawls and subsets
      * 
