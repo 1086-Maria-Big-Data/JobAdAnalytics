@@ -42,8 +42,8 @@ object entryLevel extends Queries {
       val pathToUse:String=pathList(i)
       val rdd2= WarcUtil.loadFiltered(spark.read.option("header", true).csv(path=pathToUse),enrich_payload=true)
       val xxt=rdd2.take(1000).map(x1=>SuperWarc(x1)).map{r =>r.payload(textOnly = true)}.filter{
-        f=> f.matches("entry-level")|| f.matches("entry level") }
-      val xxt2=xxt.filter(f=> f.contains("experience") || f.contains("Experience"))
+        f=> f.contains("entry-level")|| f.contains("entry level") }
+      val xxt2=xxt.filter(f=> f.contains("experience"))
       val xxt3=xxt2.filter(f=> !f.contains("no experience") )
 
       list1=list1++List(xxt.length.toDouble)
