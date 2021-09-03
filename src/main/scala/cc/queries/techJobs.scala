@@ -1,19 +1,14 @@
 package cc.queries
 
 import cc.idx.IndexUtil
-import cc.warc.{SuperWarc, WarcUtil}
 import org.apache.spark.sql.functions.{col, to_date}
-import org.archive.archivespark.functions.{Html, HtmlText}
-import org.archive.archivespark.sparkling.cdx.CdxRecord
-import org.archive.archivespark.specific.warc.WarcRecord
 import spark.session.AppSparkSession
-import cc.idx.FilteredIndex
 
 object techJobs extends Queries {
   def main(args: Array[String]): Unit = {
     val spark = AppSparkSession()
     spark.sparkContext.setLogLevel("WARN")
-    val df = spark.read.options(Map("header" -> "true")).csv("s3a://maria-1086/FilteredIndex/CC-MAIN-2020-05/part-00008-451328f0-88e5-4cca-b2f8-703cd26ff421-c000.csv")
+    val df = spark.sqlContext.read.option("header", true).schema(IndexUtil.schema).csv("s3a://maria-1086/FilteredIndex/CC-MAIN-202*-**/*.csv")
 
     val withDate = df.withColumn("fetch_date", to_date(col("fetch_time"),"yyyy-MM-dd"))
 
@@ -53,15 +48,18 @@ object techJobs extends Queries {
 
 
    */
-    println("Data Jobs")
-    groupedIsData.show()
-    println("Developer Jobs")
-    groupedIsDeveloper.show()
-    println("Web Jobs")
-    groupedIsWeb.show()
-    println("Total Tech Jobs")
-    grouped.show()
-
+    //println("Data Jobs")
+    //groupedIsData.show()
+    //println("Developer Jobs")
+    //groupedIsDeveloper.show()
+    //println("Web Jobs")
+    //groupedIsWeb.show()
+    //println("Total Tech Jobs")
+    //grouped.show()
+    IndexUtil.write(grouped, "s3a://maria-1086/Testing/Brian_Testing/techJobs/totalTechJobs", include_header=true, num_files=1)
+    IndexUtil.write(groupedIsData, "s3a://maria-1086/Testing/Brian_Testing/techJobs/dataJobs", include_header=true, num_files=1)
+    IndexUtil.write(groupedIsDeveloper, "s3a://maria-1086/Testing/Brian_Testing/techJobs/developerJobs", include_header=true, num_files=1)
+    IndexUtil.write(groupedIsWeb, "s3a://maria-1086/Testing/Brian_Testing/techJobs/webJobs", include_header=true, num_files=1)
 
   }
     
