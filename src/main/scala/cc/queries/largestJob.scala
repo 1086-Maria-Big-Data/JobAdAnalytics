@@ -29,13 +29,13 @@ object largestJob extends Queries {
     val rdd = WarcUtil.loadFiltered(csv)
       val wordCount = spark.createDataFrame(
         rdd
-          .take(5)
+          //.take(100)
           .map(warc => SuperWarc(warc))
           .flatMap(warc => warc.payload(true).split(" "))
           .map(word => (word, 1))
           .groupBy(_._1)
           .map(pair => (pair._1, pair._2.map(_._2).reduce(_ + _)))
-          .toSeq
+          //.toDF
       )
 
     //Step 2: filter for company names
@@ -65,7 +65,7 @@ object largestJob extends Queries {
       .filter(!(length(col("word")) <= 2))
 
       //common words
-      .filter(!col("word").rlike("(?i)and|the|in|of|to|a|for|as|you|with|for|is|our|your|be|an|us|will|or|have|on|are|free"))
+      .filter(!col("word").rlike("(?i)and|the|in|of|to|a|for|as|you|with|for|is|our|your|be|an|us|will|or|have|on|are|free|sql"))
       .filter(!col("word").rlike("(?i)jobs|job|posted|experience|developer|by|get|it|we|help|but|from|home|site|resume|never|out"))
       .filter(!col("word").rlike("(?i)test|log|hr|skills|scripts|per|while|such|which|ensure|degree|not|up|science|over|both|every"))
       .filter(!col("word").rlike("(?i)I|reply|tips|first|some|my|if|new|how|comments|so|post|posts|follow|know|he|send|when|enter|recent"))
