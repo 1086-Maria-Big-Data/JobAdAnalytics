@@ -56,7 +56,7 @@ object techJobs extends Queries {
     //groupedIsWeb.show()
     //println("Total Tech Jobs")
     //grouped.show()
-    IndexUtil.write(grouped, "s3a://maria-1086/Testing/Brian_Testing/techJobs/totalTechJobs", include_header=true, num_files=1)
+    IndexUtil.write(grouped, "s3a://maria-1086/Testing/Brian_Testing/techJobs/tTechJobs", include_header=true, num_files=1)
     IndexUtil.write(groupedIsData, "s3a://maria-1086/Testing/Brian_Testing/techJobs/dataJobs", include_header=true, num_files=1)
     IndexUtil.write(groupedIsDeveloper, "s3a://maria-1086/Testing/Brian_Testing/techJobs/developerJobs", include_header=true, num_files=1)
     IndexUtil.write(groupedIsWeb, "s3a://maria-1086/Testing/Brian_Testing/techJobs/webJobs", include_header=true, num_files=1)
