@@ -40,18 +40,19 @@ object jobSpikes extends Queries {
         val df = spark.read.format("parquet").option("header", "true").load("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet")
         df.createOrReplaceTempView("dat")
         val df_jobs = spark.sql("SELECT (select count(url) from dat where LOWER(url) like '%java%' and LOWER(url) not like '%javascript%') as java, (SELECT count(url) from dat where LOWER(url) like '%python%') as python, (SELECT count(url) from dat where LOWER(url) like '%scala%') as scala, (SELECT count(url) from dat where LOWER(url) like '%matlab%') as matlab, (SELECT count(url) from dat where LOWER(url) like '%sql%') as sql from dat limit 1")
-        IndexUtil.writeParquet(df_jobs, "s3a://maria-1086/TeamQueries/job-posting-spikes/mark_test")
+        IndexUtil.writeParquet(df_jobs, "s3a://maria-1086/TeamQueries/job-posting-spikes/mark_parquet/zone")
         
     }
         
     def main(args: Array[String]): Unit = {
-        // jobSpikesByJob()
+        
         val spark = AppSparkSession()
         val df = spark.sqlContext
         .read
         .option("basePath", "s3a://maria-1086/TeamQueries/job-posting-spikes/parquet")
         .parquet("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet/")
 
-        df.show
+       // df.show
+        jobSpikesByJob(spark)
     }
 }
