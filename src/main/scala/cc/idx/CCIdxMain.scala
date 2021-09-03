@@ -35,39 +35,61 @@ object CCIdxMain {
 
     def main(args: Array[String]): Unit = {
         import org.archive.archivespark.sparkling.cdx.CdxRecord
-        /**
-         * Building the spark session
-         */
-        val spark = AppSparkSession()
-        /**
-         * loading the index to dataframe(df)
-         */
-        val df = spark.read.schema(IndexUtil.schema).parquet(tablePath)
+        // /**
+        //  * Building the spark session
+        //  */
+        // val spark = AppSparkSession()
+        // /**
+        //  * loading the index to dataframe(df)
+        //  */
+        // val df = spark.read.schema(IndexUtil.schema).parquet(tablePath)
         
-        /**
-          * Testing capacity to manually make a CdxRecord from ccindex table to select specific warc records
-          */
+        // /**
+        //   * Testing capacity to manually make a CdxRecord from ccindex table to select specific warc records
+        //   */
 
-        val forCdxRec = df
-            .select("url_surtkey", "fetch_time", "url", "content_mime_type", "fetch_status", "content_digest", "fetch_redirect", "warc_segment", "warc_record_length", "warc_record_offset", "warc_filename")
-            .where(col("crawl") === "CC-MAIN-2021-10" && col("subset") === "warc" && col("url_path").rlike(".*(/job/|/jobs/|/careers/|/career/).*"))
+        // val forCdxRec = df
+        //     .select("url_surtkey", "fetch_time", "url", "content_mime_type", "fetch_status", "content_digest", "fetch_redirect", "warc_segment", "warc_record_length", "warc_record_offset", "warc_filename")
+        //     .where(col("crawl") === "CC-MAIN-2021-10" && col("subset") === "warc" && col("url_path").rlike(".*(/job/|/jobs/|/careers/|/career/).*"))
 
-        val warc_rdd = WarcUtil.loadFiltered(forCdxRec)
+        // val warc_rdd = WarcUtil.loadFiltered(forCdxRec)
 
-        val wordCount_df = spark.createDataFrame(
-            warc_rdd
-                .take(5)
-                .map(warc => SuperWarc(warc))
-                .flatMap(warc => warc.payload(true).split(" "))
-                .map(word => (word, 1))
-                .groupBy(_._1)
-                .map(pair => (pair._1, pair._2.map(_._2).reduce(_ + _)))
-                .toSeq
+        // val wordCount_df = spark.createDataFrame(
+        //     warc_rdd
+        //         .take(5)
+        //         .map(warc => SuperWarc(warc))
+        //         .flatMap(warc => warc.payload(true).split(" "))
+        //         .map(word => (word, 1))
+        //         .groupBy(_._1)
+        //         .map(pair => (pair._1, pair._2.map(_._2).reduce(_ + _)))
+        //         .toSeq
+        // )
+
+        // IndexUtil.write(wordCount_df, "s3a://maria-1086/Devin-Testing/write-test/out-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=1)
+
+        //System.exit(0)
+        val crawls = Seq(
+            "CC-MAIN-2021-04",
+            "CC-MAIN-2021-10",
+            "CC-MAIN-2021-17", 
+            "CC-MAIN-2021-21", 
+            "CC-MAIN-2021-25", 
+            "CC-MAIN-2021-31",
+            "CC-MAIN-2020-50",
+            "CC-MAIN-2020-45",
+            "CC-MAIN-2020-40",
+            "CC-MAIN-2020-34",
+            "CC-MAIN-2020-29",
+            "CC-MAIN-2020-24",
+            "CC-MAIN-2020-16",
+            "CC-MAIN-2020-10",
+            "CC-MAIN-2020-05"
         )
 
-        IndexUtil.write(wordCount_df, "s3a://maria-1086/Devin-Testing/write-test/out-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")), include_header=true, num_files=1)
-
-        System.exit(0)
+        crawls.foreach(
+            crawl =>
+                IndexUtil.write(FilteredIndex.filter(crawl), "s3a://maria-1086/FilteredIndex/" + crawl, ",", true, 16)
+        )
     }
 }
 

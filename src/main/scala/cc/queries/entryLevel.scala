@@ -2,83 +2,56 @@ package cc.queries
 
 import cc.warc._
 import spark.session.AppSparkSession
-import org.archive.archivespark._
-import org.archive.archivespark.functions._
-import org.archive.archivespark.specific.warc._
-import org.archive.archivespark.specific.warc.functions._
-import org.apache.spark.rdd.RDD
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
+import java.net.URI
+import org.apache.spark.deploy.SparkHadoopUtil
+
+
 
 object entryLevel extends Queries {
-  //unless you want it to hang forever:
-  //config.set("fs.s3a.multipart.size", "100")
-  // config.set("fs.s3a.threads.core", "10")
-  // config.set("fs.s3a.block.size", "32") in AppSpark Session also this may fix Amazon Jave Heap error too
-  //does not hang on Amazon though
 
-  def runquery(string1:String):Int={
-    //var string1:String=""
-    //string1= "s3a://commoncrawl/crawl-data/CC-MAIN-2016-36/segments/1471982290442.1/warc/CC-MAIN-20160823195810-00000-ip-10-153-172-175.ec2.internal.warc.gz"
-    val rdd1: org.apache.spark.rdd.RDD[WarcRecord] = WarcUtil.load(string1)
-    val xxt=rdd1.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.collect.map{r=>r.split(" ").mkString("Array(", ", ", ")")}.filter{
-      f=> f.contains("entry-level")|| f.contains("entry level")}
-    val xxt2=xxt.filter(f=> f.contains("experience"))
-    val xxt3=xxt2.filter(f=> !f.contains("no experience"))
-
-    //println(xxt.length)
-    //println(xxt3.length)
-    //println(xxt3.length.toDouble/xxt.length.toDouble)
-
-    //val result=xxt3.length.toDouble/xxt.length.toDouble
-    val result=xxt3.length
-    return result
-  }
 
   def main(args: Array[String]): Unit = {
-    //a very fast way to filter out all entry level not requiring experience with example for one file test case
-
+   //xxt=rdd2.take(750) can be changed to desired number and output file should have correct location at bottom
     val spark = AppSparkSession()
-    //example file and in full example we bring in all paths after index specifies them
 
-    //in this example we use two files
-    val IndexListT=spark.sparkContext.parallelize(Seq("s3a://commoncrawl/crawl-data/CC-MAIN-2016-36/segments/1471982290442.1/warc/CC-MAIN-20160823195810-00000-ip-10-153-172-175.ec2.internal.warc.gz",
-      "s3a://commoncrawl/crawl-data/CC-MAIN-2014-23/segments/1405997885796.93/warc/CC-MAIN-20140722025805-00016-ip-10-33-131-23.ec2.internal.warc.gz"),2)
+    var list1:List[Double]=List()
+    var list2:List[Double]=List()
+    var list3:List[Double]=List()
 
-    IndexListT.collect.foreach(println)
-    IndexListT.map((f:String)=> runquery(f)).collect.foreach(println)
 
-    //just examples I have been using
+    val sh=SparkHadoopUtil.get.conf
+    val path = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
+    val fileSystem = FileSystem.get(URI.create(path), sh)
+    val it = fileSystem.listFiles(new Path(path), false)
+    val status = fileSystem.listStatus(new Path(path))
+    val pathList:Array[String]=status.map(x=> x.getPath.toString).filter(x=>x.contains(".csv"))
+    //pathList.foreach(println)
 
-    //val rdd = WarcUtil.load("s3a://commoncrawl/crawl-data/CC-MAIN-2016-36/segments/1471982290442.1/warc/CC-MAIN-20160823195810-00000-ip-10-153-172-175.ec2.internal.warc.gz")
-    //val rdd1=WarcUtil.load(path="s3a://commoncrawl/crawl-data/CC-MAIN-2014-23/segments/1405997885796.93/warc/CC-MAIN-20140722025805-00016-ip-10-33-131-23.ec2.internal.warc.gz")
+    for(i<- 0 to (pathList.length-1)){
+    //for(i<- 0 to 5){
+      println(pathList(i))
+      val pathToUse:String=pathList(i)
+      val rdd2= WarcUtil.loadFiltered(spark.read.option("header", true).csv(path=pathToUse),enrich_payload=true)
+      val xxt=rdd2.take(750).map(x1=>SuperWarc(x1)).map{r =>r.payload(textOnly = true)}.filter{
+        f=> f.matches(".*[Ee]ntry-[Ll]evel.*")|| f.matches(".*[Ee]ntry [Ll]evel.*") }
+      val xxt2=xxt.filter(f=> f.matches(".*[Ee]xperience.*"))
+      val xxt3=xxt2.filter(f=> !f.matches(".*[Nn]o [Ee]xperience.*"))
 
-    //val countPart=rdd.getNumPartitions
-    //println(countPart)
-    //println("will2")
+      list1=list1++List(xxt.length.toDouble)
+      list2=list2++List(xxt3.length.toDouble)
+      list3=list3++List((xxt3.length.toDouble/xxt.length.toDouble)*100)
 
-    //just a test may need more memory of kryo serializer for below to work, already increased to 512mb
-    //val rdd2=rdd.repartition(numPartitions=2)
-    //rdd.take(5).map(x1=>SuperWarc(x1)).foreach{r =>println(r.payload(textOnly = true).split(" ").mkString("Array(", ", ", ")"))}
+      println(xxt.length.toString++","++ xxt3.length.toString++","++(xxt3.length.toDouble/xxt.length.toDouble).toString)
 
-    //println(rdd2.partitions.length)
-
-    //just a test
-    //may need more memory of kryo serializer for below to work
-    //val xx2=rdd.collect.map(x1=>SuperWarc(x1)).map{r =>(r.payload(textOnly = true).split(" ").mkString("Array(", ", ", ")").contains("Comments"))}
-    //println(xx2.count(_==true))
-
-    //below works make sure .set("spark.kryoserializer.buffer.max.mb", "512")
-    //println(rdd.count)
-    //val xxt=rdd.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.take(5).map{r=>r.split(" ").mkString("Array(", ", ", ")").contains("Comments")}
-    //println(xxt.count(_==true))
-
-    //val xxt=rdd.enrich(HtmlText.ofEach(Html.all("body"))).toJsonStrings.collect.map{r=>r.split(" ").mkString("Array(", ", ", ")")}.filter{
-    //f=> f.contains("entry-level")|| f.contains("entry level")}
-    //val xxt2=xxt.filter(f=> f.contains("experience"))
-    //val xxt3=xxt2.filter(f=> !f.contains("no experience"))
-
-    //println(xxt.length)
-    //println(xxt3.length)
-    //println(xxt3.length.toDouble/xxt.length.toDouble)
+    }
+    val Total=(list1,list2,list3).zipped.toList
+    val dftoWrite = spark.createDataFrame(Total).toDF("Total Entry-Level Tech Jobs", "Entry-Level Exp. Req.","Percent Requiring Exp.")
+    dftoWrite.show()
+    //dftoWrite.coalesce(1).write.format("csv").option("header","true").mode("Overwrite").save("/output/testing")
+    dftoWrite.coalesce(1).write.format("csv").option("header", "true").mode("Overwrite").save("s3a://maria-1086/Testing/will_testing/newresults")
+    //dftoWrite.coalesce(1).write.format("csv").option("header", "true").mode("Overwrite").save("s3a://maria-1086/TeamQueries/entryLevel")
 
     spark.stop
     System.exit(0)
