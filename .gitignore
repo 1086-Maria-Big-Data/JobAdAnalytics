@@ -14,5 +14,6 @@ spark-warehouse/
 app.config
 
 
-generic.properties
 .DS_Store
+generic.properties
+null/
