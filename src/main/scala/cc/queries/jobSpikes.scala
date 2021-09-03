@@ -12,24 +12,28 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions.{month, col}
 import org.apache.spark.sql.types.{StructType, StructField, IntegerType, LongType, StringType, TimestampType, ShortType}
 import cc.idx._
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
 
+
 object jobSpikes extends Queries {
     
-    def partitionByMonth(): Unit = {
-        val spark = AppSparkSession()
-        val df = spark.sqlContext.read.option("header", true).schema(IndexUtil.schema).csv("s3a://maria-1086/FilteredIndex/CC-MAIN-2021-**/*.csv")
+    def partitionByMonth(spark: SparkSession): Unit = {
+        val df = spark.sqlContext.read.option("header", true).schema(IndexUtil.schema).csv("s3a://maria-1086/FilteredIndex/CC-MAIN-2020-**/*.csv")
         var newDF = null.asInstanceOf[DataFrame]
         for(x <- 1 to 12){
             newDF = df.where(month(col("fetch_time"))===x)
-            IndexUtil.write(newDF, "s3a://maria-1086/TeamQueries/job-posting-spikes/2021/%02d".format(x), include_header=true, num_files=8)
+            IndexUtil.write(newDF, "s3a://maria-1086/TeamQueries/job-posting-spikes/2020/%02d".format(x), include_header=true, num_files=8)
         }
     }
+    def countByMonth(spark: SparkSession): Unit ={
+        val df = spark.sqlContext.read.option("header", true).schema(IndexUtil.schema).parquet("s3://maria-1086/TeamQueries/job-posting-spikes/2021/**/*.parquet")
 
-    def jobSpikesByJob(path:String): Unit = {
-        val spark = AppSparkSession()
+        
+    }
+
+    def jobSpikesByJob(spark: SparkSession, path: String): Unit = {
         val df = spark.read.format("csv").option("header", "true").load(path)
         val df2 = 
         df.createOrReplaceTempView("dat")
@@ -37,7 +41,7 @@ object jobSpikes extends Queries {
     }
         
     def main(args: Array[String]): Unit = {
-        val path = "s3a://maria-1086/Testing/Mark-Testing/part-00001-bb6fa4ba-4e14-49d3-985c-e570505dc35d-c000.csv"
-        jobSpikesByJob(path)
+        val spark = AppSparkSession()
+        partitionByMonth(spark)
     }
 }
