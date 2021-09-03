@@ -6,6 +6,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, udf}
 import org.archive.archivespark.specific.warc.WarcRecord
 import spark.session.AppSparkSession
+import scala.collection.immutable.HashSet
 
 object FilteredIndex {
   /**
@@ -20,15 +21,16 @@ object FilteredIndex {
    * method for debugging/improving our filters.
    *  */
 
-  def filter(initial_partition: Int=256, final_partition: Int=16): DataFrame = {
+  def filter(crawl: String, initial_partitions: Int=256, final_partitions: Int=0): DataFrame = {
     /** Filters the CCIndex with mutually agreed filters that should work for all our queries.
-     *
-     * @param intial_partition - the number of partitions to sort the CCIndex by for processing
-     * @param final_partition - the number of partitions to pass into WarcUtil.loadfiltered
+     * @param crawl - the crawl to filter the index by. Must be one of cc.idx.IndexUtil.crawls
+     * @param intial_partitions - the number of partitions to sort the CCIndex by for processing
+     * @param final_partitions - the number of to repartition to after processing if > 0. Else, no repartitioning is done.
      */
+
     val spark = AppSparkSession()
 
-    val df = IndexUtil.load(spark).repartition(initial_partition)
+    val df = IndexUtil.load(spark).repartition(initial_partitions)
 
     val techJob = techJobTerms.map(_.toLowerCase)
 
@@ -40,28 +42,42 @@ object FilteredIndex {
 
     val filterString_udf = udf(filterString _)
 
-
-    return df
-      .where(col("fetch_status") === 200 &&
-        col("content_mime_type") === "text/html" &&
-        col("content_languages") === "eng" &&
+    val res = df
+      .where(
+        col("crawl") === crawl &&
         col("subset") === "warc" &&
-        col("crawl") === "CC-MAIN-2021-10" &&
+        col("content_languages") === "eng" &&
         col("url_host_tld") === "com" &&
+        col("fetch_status") === 200 &&
+        col("content_mime_type") === "text/html" &&
         col("url_path").rlike("(?i)^(?=.*(job[s]{0,1}\\.|career[s]{0,1}\\.|/job[s]{0,1}/|/career[s]{0,1}/))") &&
         filterString_udf(col("url_path")) === true)
-      //.repartition(final_partition)
+    
+    if (final_partitions > 0)
+      return res.repartition(final_partitions)
+    
+    return res
   }
 
-  def get(): RDD[WarcRecord] = {
-    return WarcUtil.loadFiltered(filter())
+  def get(crawl: String): RDD[WarcRecord] = {
+    /** Wrapper function to get a filtered index & load the corresponding WARC records.
+      *
+      * @param crawl - the crawl to filter the index by. Must be one of cc.idx.IndexUtil.crawls
+      */
+    return WarcUtil.loadFiltered(filter(crawl))
   }
 
-  def view_sample():Unit ={
-    filter().take(10000).foreach(row => row.toSeq.foreach(println))
+  def view_sample(crawl: String, num_samples: Int=1000): Unit = {
+    /** Function to view a sample of the filtered index records.
+      * 
+      * @param crawl - the crawl to filter the index by. Must be one of cc.idx.IndexUtil.crawls
+      */
+    filter(crawl)
+    .take(num_samples)
+    .foreach(row => row.toSeq.foreach(println))
   }
 
-  val techJobTerms = Seq("embedded",
+  val techJobTerms = HashSet("embedded",
     "printer",
     "imaging",
     "devops",
