@@ -67,7 +67,7 @@ object infrequentJobs extends Queries {
       mapMoPerc += Tuple2[String, Float](months(i), percentages(i))
     }
     val percentagesDF = spark.createDataFrame(mapMoPerc.toSeq).toDF("Month", "Percentage of Infrequent Posters")
-
+    
     // Try catch block to handle any exceptions with writing to s3 bucket
     try {
       IndexUtil.write(percentagesDF, writePath, include_header = true, num_files = 1)
