@@ -35,22 +35,25 @@ object entryLevel extends Queries {
     var list2:List[Double]=List()
     var list3:List[Double]=List()
 
+    //val fs = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfiguration)
+    //fs.listStatus(new Path(s"${hdfs-path}")).filter(_.isDir).map(_.getPath).foreach(println)
 
-    //val sh=SparkHadoopUtil.get.conf
-    //val path = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
-    //val fileSystem = FileSystem.get(URI.create(path), sh)
-    //val it = fileSystem.listFiles(new Path(path), true)
-   //while (it.hasNext()) {
-      //println(it.toString)
-    //}
+    val sh=SparkHadoopUtil.get.conf
+    val path = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
+    val fileSystem = FileSystem.get(URI.create(path), sh)
+    val it = fileSystem.listFiles(new Path(path), false)
+    val status = fileSystem.listStatus(new Path(path))
+    val pathList:Array[String]=status.map(x=> x.getPath.toString).filter(x=>x.contains(".csv"))
+    //pathList.foreach(println)
 
-    val pathList:List[String]=List("s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21/part-00000-bd00e7f8-5888-4093-aca8-e69ea6a0deea-c000.csv")
+    //val pathList:Array[String]=Array("s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21/part-00000-bd00e7f8-5888-4093-aca8-e69ea6a0deea-c000.csv")
     //val rdd2= WarcUtil.loadFiltered(spark.read.option("header", true).csv("s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21/part-00000-bd00e7f8-5888-4093-aca8-e69ea6a0deea-c000.csv"),enrich_payload=true)
 
     for(i<- 0 to (pathList.length-1)){
       println(pathList(i))
-      val rdd2= WarcUtil.loadFiltered(spark.read.option("header", true).csv(path=pathList(i)),enrich_payload=true)
-      val xxt=rdd2.take(5).map(x1=>SuperWarc(x1)).map{r =>r.payload(textOnly = true)}.filter{
+      val pathToUse:String=pathList(i)
+      val rdd2= WarcUtil.loadFiltered(spark.read.option("header", true).csv(path=pathToUse),enrich_payload=true)
+      val xxt=rdd2.take(1000).map(x1=>SuperWarc(x1)).map{r =>r.payload(textOnly = true)}.filter{
         f=> f.contains("entry-level")|| f.contains("entry level")}
       val xxt2=xxt.filter(f=> f.contains("experience"))
       val xxt3=xxt2.filter(f=> !f.contains("no experience"))

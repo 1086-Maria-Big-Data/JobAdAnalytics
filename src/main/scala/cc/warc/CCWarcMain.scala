@@ -15,7 +15,6 @@ object CCWarcMain {
         val spark = AppSparkSession()
 
         val rdd = WarcUtil.load("s3a://commoncrawl/crawl-data/CC-MAIN-2021-31/segments/1627046157039.99/warc/CC-MAIN-20210805193327-20210805223327-00719.warc.gz")
-        //val rdd2= WarcUtil.loadFiltered(spark.read.option("header", true).option("inferSchema",true).csv("s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21/part-00000-bd00e7f8-5888-4093-aca8-e69ea6a0deea-c000.csv"),enrich_payload=true)
 
         // Toy example to show all the accessible attributes on a SuperWarc
         rdd
