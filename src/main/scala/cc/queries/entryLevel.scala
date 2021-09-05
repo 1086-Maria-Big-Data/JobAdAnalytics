@@ -28,28 +28,28 @@ object entryLevel extends Queries {
     val pathList:Array[String]=status.map(x=> x.getPath.toString).filter(x=>x.contains(".csv"))
     //pathList.foreach(println)
 
-    //for(i<- 0 to (pathList.length-1)){
-    for(i<- 0 to 1){
+    for(i<- 0 to (pathList.length-1)){
+    //for(i<- 2 to 3){
       println(pathList(i))
       val pathToUse:String=pathList(i)
       val rdd2= WarcUtil.loadFiltered(spark.read.option("header", true).csv(path=pathToUse),enrich_payload=true)
-      val xxt=rdd2.map(x1=>SuperWarc(x1)).map{r =>r.payload(textOnly = true)}.filter{
+      val xxt=rdd2.take(100).map(x1=>SuperWarc(x1)).map{r =>r.payload(textOnly = true)}.filter{
         f=> f.matches(".*[Ee]ntry-[Ll]evel.*")|| f.matches(".*[Ee]ntry [Ll]evel.*") }
       val xxt2=xxt.filter(f=> f.matches(".*[Ee]xperience.*"))
       val xxt3=xxt2.filter(f=> !f.matches(".*[Nn]o [Ee]xperience.*"))
 
-      list1=list1++List(xxt.count.toDouble)
-      list2=list2++List(xxt3.count.toDouble)
-      list3=list3++List((xxt3.count.toDouble/xxt.count.toDouble)*100)
+      list1=list1++List(xxt.length.toDouble)
+      list2=list2++List(xxt3.length.toDouble)
+      list3=list3++List((xxt3.length.toDouble/xxt.length.toDouble)*100)
 
-      println(xxt.count.toString++","++ xxt3.count.toString++","++(xxt3.count.toDouble/xxt.count.toDouble).toString)
+      println(xxt.length.toString++","++ xxt3.length.toString++","++(xxt3.length.toDouble/xxt.length.toDouble).toString)
 
     }
     val Total=(list1,list2,list3).zipped.toList
     val dftoWrite = spark.createDataFrame(Total).toDF("Total Entry-Level Tech Jobs", "Entry-Level Exp. Req.","Percent Requiring Exp.")
     dftoWrite.show()
-    //dftoWrite.coalesce(1).write.format("csv").option("header","true").mode("Overwrite").save("/output/testing")
-    dftoWrite.coalesce(1).write.format("csv").option("header", "true").mode("Overwrite").save("s3a://maria-1086/Testing/will_testing/newresults")
+    dftoWrite.coalesce(1).write.format("csv").option("header","true").mode("Overwrite").save("/output/testing")
+    //dftoWrite.coalesce(1).write.format("csv").option("header", "true").mode("Overwrite").save("s3a://maria-1086/Testing/will_testing/newresults")
     //dftoWrite.coalesce(1).write.format("csv").option("header", "true").mode("Overwrite").save("s3a://maria-1086/TeamQueries/entryLevel")
 
     spark.stop
