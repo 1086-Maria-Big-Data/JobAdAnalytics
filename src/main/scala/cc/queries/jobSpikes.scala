@@ -61,20 +61,23 @@ object jobSpikes extends Queries {
     }
     def jobSpikesByJob(spark: SparkSession): Unit = {
         //val df = spark.sqlContext.read.option("header", true).schema(IndexUtil.schema).csv("s3a://maria-1086/TeamQueries/job-posting-spikes/2021/**/*.csv")
-        val df = spark.read.format("csv").option("header", "true").load("s3a://maria-1086/TeamQueries/job-posting-spikes/2021/**/*.csv")
-        for(x <- 1 to 12){
-            df.createOrReplaceTempView("dat")
-            val df_jobs = spark.sql("SELECT (select count(url) from dat where LOWER(url) like '%java%' and LOWER(url) not like '%javascript%') as java, (SELECT count(url) from dat where LOWER(url) like '%python%') as python, (SELECT count(url) from dat where LOWER(url) like '%scala%') as scala, (SELECT count(url) from dat where LOWER(url) like '%matlab%') as matlab, (SELECT count(url) from dat where LOWER(url) like '%sql%') as sql from dat limit 1")
-            IndexUtil.write(df_jobs, "s3a://maria-1086/TeamQueries/job-posting-spikes/mark_test/2021/%02".format(x))
-        }
+        val df = spark.read.format("parquet").option("header", "true").load("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet")
+        df.createOrReplaceTempView("dat")
+        val df_jobs = spark.sql("SELECT (select count(url) from dat where LOWER(url) like '%java%' and LOWER(url) not like '%javascript%') as java, (SELECT count(url) from dat where LOWER(url) like '%python%') as python, (SELECT count(url) from dat where LOWER(url) like '%scala%') as scala, (SELECT count(url) from dat where LOWER(url) like '%matlab%') as matlab, (SELECT count(url) from dat where LOWER(url) like '%sql%') as sql from dat limit 1")
+        IndexUtil.writeParquet(df_jobs, "s3a://maria-1086/TeamQueries/job-posting-spikes/mark_parquet/zone")
+        
     }
         
     def main(args: Array[String]): Unit = {
-        // jobSpikesByJob()
+        
         val spark = AppSparkSession()
-        var mainDF = countByMonth(spark)
-        // val mainDF = countByQuarter(spark)
-        IndexUtil.write(mainDF, "s3a://maria-1086/TeamQueries/job-posting-spikes/output-miguel/countByMonths", num_files = 1, include_header = true)
+        val df = spark.sqlContext
+        .read
+        .option("basePath", "s3a://maria-1086/TeamQueries/job-posting-spikes/parquet")
+        .parquet("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet/")
+
+       // df.show
+        jobSpikesByJob(spark)
     }
 }
 
