@@ -86,10 +86,12 @@ object CCIdxMain {
             "CC-MAIN-2020-05"
         )
 
+
         crawls.foreach(
             crawl =>
                 IndexUtil.write(FilteredIndex.filter(crawl), "s3a://maria-1086/FilteredIndex/" + crawl, ",", true, 16)
         )
+
     }
 }
 
