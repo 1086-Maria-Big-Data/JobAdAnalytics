@@ -98,6 +98,22 @@ object Requirements extends Queries {
         "[Qq](?=ualification[s]{0,1})".r.findFirstIn(line).isDefined
     }
 
+    def takeLines(htmlString: String, numLines: Int=10): Iterable[String] = {
+        val lines = htmlString
+            .split("\n")
+            .zipWithIndex
+
+        val res = lines.find{
+            case (line, idx) => findKeyWord(line)
+        }.getOrElse(("", -1))._2
+
+        if (res >= 0)
+            return lines.slice(res, res + numLines).map(_._1)
+        
+        return Seq("")
+        
+    }
+
     // Designated space for take lines fuction
 
     def processQualifications(qLine: String): Seq[(String,Long)] = {
