@@ -20,17 +20,24 @@ import org.apache.spark.sql.SparkSession
 
 object jobSpikes extends Queries {
 
+    def buildIndexPartitions(spark: SparkSession): Unit = {
+        partitionByMonthAndYear(
+            spark, 
+            "s3a://maria-1086/FilteredIndex/CC-MAIN-202*-**/*.csv", 
+            "s3a://maria-1086/TeamQueries/job-posting-spikes/parquet"
+        )
+    }
     
-    def partitionByMonthAndYear(spark: SparkSession): Unit = {
+    def partitionByMonthAndYear(spark: SparkSession, srcPath: String, dstPath: String): Unit = {
         val df = spark.sqlContext
             .read
             .option("header", true)
             .schema(IndexUtil.schema)
-            .csv("s3a://maria-1086/FilteredIndex/CC-MAIN-202*-**/*.csv")
+            .csv(srcPath)
             .withColumn("fetch_year", year(col("fetch_time")))
             .withColumn("fetch_month", month(col("fetch_time")))
 
-        IndexUtil.writeParquet(df, "s3a://maria-1086/TeamQueries/job-posting-spikes/parquet", partition_cols=Seq("fetch_year", "fetch_month"))
+        IndexUtil.writeParquet(df, dstPath, partition_cols=Seq("fetch_year", "fetch_month"))
     }
     // def partitionByQuarter(spark: SparkSession): Unit ={
     //     val df = spark.sqlContext
@@ -57,8 +64,8 @@ object jobSpikes extends Queries {
             .withColumn("fetch_quarter", quarter(col("fetch_time")))
         var quarterDF = df.groupBy("fetch_year", "fetch_quarter").count().orderBy("fetch_year", "fetch_quarter")
         return quarterDF
-        
     }
+
     def jobSpikesByJob(spark: SparkSession): Unit = {
         //val df = spark.sqlContext.read.option("header", true).schema(IndexUtil.schema).csv("s3a://maria-1086/TeamQueries/job-posting-spikes/2021/**/*.csv")
         val df = spark.read.format("parquet").option("header", "true").load("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet")
