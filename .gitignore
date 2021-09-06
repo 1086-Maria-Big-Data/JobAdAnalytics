@@ -17,3 +17,5 @@ input/
 
 .DS_Store
 generic.properties
+
+test/

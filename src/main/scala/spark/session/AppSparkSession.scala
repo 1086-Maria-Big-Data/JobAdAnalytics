@@ -14,17 +14,35 @@ object AppSparkSession {
     private var ss: SparkSession = null
 
     /**
+      * Sets logging verbosity and either returns a new SparkSession instance
+      * or returns a handle to the current SparkSession.
+      *
+      * @param log if true, sets the logging verbosity to INFO; otherwise, it is set to ERROR.
+      * @return a new or existing SparkSession handle.
+      */
+    def apply(log: Boolean = true): SparkSession = {logging(log); getOrCreateSparkSession}
+
+    /**
+      * Sets the logging verbosity at either INFO (verbose) or ERROR.
+      *
+      * @param infLogLvl if true, logging verbosity is set to INFO level.
+      */
+    def logging(infLogLvl: Boolean): Unit = {
+        val logLvl = if (infLogLvl) Level.INFO else Level.ERROR
+
+        Logger.getLogger("org").setLevel(logLvl)
+        Logger.getLogger("akka").setLevel(logLvl)
+    }
+    
+    /**
       * Returns a configured SparkSession, constructed using createSparkSession
       */
-    def apply(): SparkSession = if (ss == null) {ss = createSparkSession; ss} else ss
+    private def getOrCreateSparkSession: SparkSession = if (ss == null) {ss = createSparkSession; ss} else ss
 
     /**
       * Returns a configured SparkSession
       */
     private def createSparkSession: SparkSession = {
-        // Logger.getLogger("org").setLevel(Level.ERROR)
-        // Logger.getLogger("akka").setLevel(Level.ERROR)
-
         val conf = new SparkConf()
             .setAppName(this.getClass.getCanonicalName())
             .set("spark.hadoop.parquet.enable.dictionary", "true")
@@ -61,4 +79,5 @@ object AppSparkSession {
 
         spark
     }
+
 }
