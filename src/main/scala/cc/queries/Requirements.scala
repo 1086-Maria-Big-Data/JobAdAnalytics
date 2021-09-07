@@ -32,17 +32,14 @@ object Requirements extends Queries {
         //Get warc records from private S3 index query results and union all shards
         val warcs = generateWarcRDD(csvPaths, spark)
 
-        val chArray = new Array[Byte](1024 * 5)
-
-        warcs.zipWithIndex.filter{case (_,idx) => idx == 27702 || idx == 27703}.take(2)
-            .foreach(wk => println(wk._1.data.access(is => {is.read(chArray); chArray})))
+        warcs.zipWithIndex.filter{case (_,idx) => idx == 27702 || idx == 27703}.map{case (warc,_) => warc}
         
         /**
           * Filter warc records, accumulate a count of the different
           * types of requirements, and accumulate a total count simultaneously
           */
         val totCount = spark.sparkContext.longAccumulator
-        warcs.mapPartitions(itrWarcs => itrWarcs.map(warc => processWarcRecord(warc)).flatten)
+        warcs.mapPartitions(itrWarcs => itrWarcs.map(warc => processWarcRecord(warc)).flatten).reduceByKey{case (opd1, opd2) => opd1 + opd2}
     }
 
     def getCSVPaths(path: String): ArrayBuffer[String] = {
