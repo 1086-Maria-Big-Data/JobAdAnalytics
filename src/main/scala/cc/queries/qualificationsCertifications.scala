@@ -27,10 +27,11 @@ object qualificationsCertifications extends Queries {
         val spark = AppSparkSession()
 
         //Get paths to all csv files to process
-        val csvPaths = getCSVPaths(s3Path)
+        //val csvPaths = getCSVPaths(s3Path)
 
         //Get warc records from private S3 index query results, union all shards and repartition
         //val warcs = generateWarcRDD(csvPaths, spark).repartition(initialPartitions)
+        
         val index = spark.sqlContext
             .read
             .option("header", true)
@@ -41,6 +42,7 @@ object qualificationsCertifications extends Queries {
         val warcs = WarcUtil
             .loadFiltered(index, enrich_payload=false)
             .repartition(initialPartitions)
+            .enrich(Html.first("body"))
 
         //Process the warc records and write to a csv file
         val fullWritePath = writePath + args(0)
