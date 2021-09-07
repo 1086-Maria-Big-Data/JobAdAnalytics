@@ -16,7 +16,7 @@ import org.apache.hadoop.fs.{FileSystem,LocatedFileStatus,Path,RemoteIterator}
 import org.archive.archivespark.functions.Html
 import org.archive.archivespark.specific.warc.WarcRecord
 
-object Requirements extends Queries {
+object qualificationsCertifications extends Queries {
     private val s3Path = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
 
     def main(args: Array[String]): Unit = {
