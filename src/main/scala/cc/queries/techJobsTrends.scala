@@ -4,7 +4,7 @@ import cc.idx.IndexUtil
 import org.apache.spark.sql.functions.{col, to_date}
 import spark.session.AppSparkSession
 
-object techJobs extends Queries {
+object techJobsTrends extends Queries {
   def main(args: Array[String]): Unit = {
     val spark = AppSparkSession()
     spark.sparkContext.setLogLevel("WARN")
