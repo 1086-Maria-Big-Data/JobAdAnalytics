@@ -6,17 +6,18 @@ import cc.warc.{WarcUtil,SuperWarc}
 import java.net.URI
 import scala.collection.immutable.HashSet
 import scala.collection.mutable.ArrayBuffer
+import scala.math.Ordering
 
 import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.rdd.RDD
 import org.apache.hadoop.fs.{FileSystem,LocatedFileStatus,Path,RemoteIterator}
 
+import org.archive.archivespark.functions.Html
 import org.archive.archivespark.specific.warc.WarcRecord
 
 object Requirements extends Queries {
-    // private val s3Path = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
-    // private val s3Path = "s3a://maria-1086/FilteredIndex/"
+    private val s3Path = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
 
     def main(args: Array[String]): Unit = {
         run
@@ -26,21 +27,12 @@ object Requirements extends Queries {
         val spark = AppSparkSession()
 
         //Get paths to all csv files to process
-        // val csvPaths = getCSVPaths(s3Path)
-        val csvPaths = ArrayBuffer[String]("s3a://maria-1086/FilteredIndex/CC-MAIN-2020-05/part-00000-451328f0-88e5-4cca-b2f8-703cd26ff421-c000.csv","s3a://maria-1086/FilteredIndex/CC-MAIN-2020-05/part-00001-451328f0-88e5-4cca-b2f8-703cd26ff421-c000.csv")
+        val csvPaths = getCSVPaths(s3Path)
 
         //Get warc records from private S3 index query results and union all shards
         val warcs = generateWarcRDD(csvPaths, spark)
-
-        warcs.zipWithIndex.filter{case (_,idx) => idx == 27702 || idx == 27703}.map{case (warc,_) => warc}
         
-        /**
-          * Filter warc records, accumulate a count of the different
-          * types of requirements, and accumulate a total count simultaneously
-          */
-        val totCount = spark.sparkContext.longAccumulator
-        warcs.flatMap(processWarcRecord(_)).reduceByKey(_ + _)
-        .collect.foreach(println)
+        warcs.flatMap(processWarcRecord(_)).reduceByKey(_ + _).sortBy(_._2,false).collect.foreach(println)
     }
 
     def getCSVPaths(path: String): ArrayBuffer[String] = {
@@ -76,16 +68,18 @@ object Requirements extends Queries {
                 .csv(fileP),enrich_payload = false)
         )
 
-        warcRDDs.reduceLeft[RDD[WarcRecord]]((f,v) => f ++ v)
+        spark.sparkContext.union(warcRDDs).enrich(Html.first("body"))
+
     }
 
     def findKeyWord(line: String): Boolean = {
         "[Qq](?=ualification[s]{0,1})".r.findFirstIn(line).isDefined
     }
 
-    def takeLines(htmlString: String, numLines: Int=10): Array[String] = {
+    def takeLines(htmlString: String, numLines: Int=20): Array[String] = {
         val lines = htmlString
             .split("\n")
+            .view
             .zipWithIndex
 
         val res = lines.find{
@@ -93,7 +87,7 @@ object Requirements extends Queries {
         }.getOrElse(("", -1))._2
 
         if (res >= 0)
-            return lines.slice(res, res + numLines).map(_._1)
+            return lines.slice(res, res + numLines).map(_._1).toArray
         
         return Array[String]("")
         
@@ -108,8 +102,8 @@ object Requirements extends Queries {
         qLine
             .toLowerCase
             .split("(<.*?>)|:|;|\\-|(\\(.*?\\))| ")
-            .withFilter(word => !skippable(removeSymbols(word)))
-            .map((_,1))
+            .map(word => (removeSymbols(word),1))
+            .filter(wn => notSkippable(wn._1))
     }
 
     def removeSymbols(word: String): String = {
@@ -134,23 +128,81 @@ object Requirements extends Queries {
         )
     }
 
-    private val skippable = HashSet(
-        "",
-        "a",
-        "the",
-        "for",
-        "in",
-        "years",
-        "of",
-        "experience",
-        "or",
-        "equivalent",
+    private val notSkippable = HashSet(
+        "phd",
+        "bachelor",
+        "bachelors",
         "college",
         "university",
-        "accredited",
-        "substituted",
-        "work",
-        "required",
-        "basic"
+        "universitys",
+        "masters",
+        "phds",
+        "degree",
+        "doctorate",
+        "associate",
+        "associates",
+        "certificate",
+        "diploma",
+        "highschool",
+        "school",
+        "high",
+        "certification",
+        "experienced",
+        "doctoral",
+        "doctor",
+        "doctors"   
     )
+
+    // private val skippable = HashSet(
+    //     "",
+    //     "a",
+    //     "the",
+    //     "for",
+    //     "in",
+    //     "years",
+    //     "of",
+    //     "experience",
+    //     "or",
+    //     "equivalent",
+    //     "accredited",
+    //     "substituted",
+    //     "work",
+    //     "required",
+    //     "basic",
+    //     "and",
+    //     "to",
+    //     "must",
+    //     "be",
+    //     "with",
+    //     "rn",
+    //     "is",
+    //     "nbsp",
+    //     "will",
+    //     "have",
+    //     "s",
+    //     "as",
+    //     "an",
+    //     "all",
+    //     "on",
+    //     "this",
+    //     "that",
+    //     "it",
+    //     "are",
+    //     "at",
+    //     "from",
+    //     "its",
+    //     "other",
+    //     "you",
+    //     "if",
+    //     "apply",
+    //     "their",
+    //     "see",
+    //     "now",
+    //     "meet",
+    //     "ad",
+    //     "we",
+    //     "well",
+    //     "area",
+    //     "by"
+    // )
 }
