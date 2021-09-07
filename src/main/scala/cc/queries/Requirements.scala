@@ -39,7 +39,8 @@ object Requirements extends Queries {
           * types of requirements, and accumulate a total count simultaneously
           */
         val totCount = spark.sparkContext.longAccumulator
-        warcs.mapPartitions(itrWarcs => itrWarcs.map(warc => processWarcRecord(warc)).flatten).reduceByKey{case (opd1, opd2) => opd1 + opd2}
+        warcs.flatMap(processWarcRecord(_)).reduceByKey(_ + _)
+        .collect.foreach(println)
     }
 
     def getCSVPaths(path: String): ArrayBuffer[String] = {
