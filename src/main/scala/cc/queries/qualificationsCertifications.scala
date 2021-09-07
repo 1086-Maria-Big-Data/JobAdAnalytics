@@ -18,10 +18,27 @@ import org.archive.archivespark.functions.Html
 import org.archive.archivespark.specific.warc.WarcRecord
 
 object qualificationsCertifications extends Queries {
-    private val s3Path            = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
+    private val s3Path            = "s3a://maria-1086/FilteredIndex/"
     private val writePath         = "s3a://maria-1086/TeamQueries/qualification-and-certifications/"
     private val writeDelim        = ","
     private val initialPartitions = 512
+    private val crawls = Seq(
+        "CC-MAIN-2020-05", 
+        "CC-MAIN-2020-10", 
+        "CC-MAIN-2020-16", 
+        "CC-MAIN-2020-24", 
+        "CC-MAIN-2020-29", 
+        "CC-MAIN-2020-34", 
+        "CC-MAIN-2020-40", 
+        "CC-MAIN-2020-45", 
+        "CC-MAIN-2020-50", 
+        "CC-MAIN-2021-04", 
+        "CC-MAIN-2021-10", 
+        "CC-MAIN-2021-17", 
+        "CC-MAIN-2021-21", 
+        "CC-MAIN-2021-25", 
+        "CC-MAIN-2021-31"
+    )
 
     def main(args: Array[String]):Unit = {
         val spark = AppSparkSession()
@@ -31,22 +48,24 @@ object qualificationsCertifications extends Queries {
 
         //Get warc records from private S3 index query results, union all shards and repartition
         //val warcs = generateWarcRDD(csvPaths, spark).repartition(initialPartitions)
-        
-        val index = spark.sqlContext
-            .read
-            .option("header", true)
-            .schema(IndexUtil.schema)
-            .csv(s3Path + "/*.csv")
-            .repartition(initialPartitions)
-        
-        val warcs = WarcUtil
-            .loadFiltered(index, enrich_payload=false)
-            .repartition(initialPartitions)
-            .enrich(Html.first("body"))
 
-        //Process the warc records and write to a csv file
-        val fullWritePath = writePath + args(0)
-        writeResults(processWarcRDD(warcs, spark), fullWritePath)
+        for (crawl <- crawls) {
+            val index = spark.sqlContext
+                .read
+                .option("header", true)
+                .schema(IndexUtil.schema)
+                .csv(s3Path + crawl + "/*.csv")
+                .repartition(initialPartitions)
+            
+            val warcs = WarcUtil
+                .loadFiltered(index, enrich_payload=false)
+                .repartition(initialPartitions)
+                .enrich(Html.first("body"))
+
+            //Process the warc records and write to a csv file
+            val fullWritePath = writePath + crawl
+            writeResults(processWarcRDD(warcs, spark), fullWritePath)
+        }
     }
 
     /**
