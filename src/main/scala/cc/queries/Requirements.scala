@@ -1,9 +1,10 @@
 package cc.queries
 
 import spark.session.AppSparkSession
-import cc.warc.WarcUtil
+import cc.warc.{WarcUtil,SuperWarc}
 
 import java.net.URI
+import scala.collection.immutable.HashSet
 import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.deploy.SparkHadoopUtil
@@ -12,9 +13,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.hadoop.fs.{FileSystem,LocatedFileStatus,Path,RemoteIterator}
 
 import org.archive.archivespark.specific.warc.WarcRecord
-import scala.collection.mutable.Stack
-import scala.collection.immutable.HashMap
-import scala.collection.immutable.HashSet
 
 object Requirements extends Queries {
     // private val s3Path = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
@@ -114,28 +112,32 @@ object Requirements extends Queries {
         
     }
 
-    // Designated space for take lines fuction
+    def processWarcRecord(warc: WarcRecord): Seq[(String,Long)] = {
+        takeLines(SuperWarc(warc).payload)
+            .flatMap{processQualifications(_)}
+            .toSeq
+    }
 
     def processQualifications(qLine: String): Seq[(String,Long)] = {
-        groupAgg(
-        qLine.split("<.*?>")(1).toLowerCase.split(" ")
-        .foldLeft(Seq[(String,Long)]())(
-            (f,v) => if (skippable(v)) f else f ++ Seq[(String,Long)]((removeExtras(v),1))
-        ))
+        qLine
+            .toLowerCase
+            .split("(<.*?>)|:|;|\\-|(\\(.*?\\))| ")
+            .filter(_ != "")
+            .foldLeft(Seq[(String,Long)]())(
+                (f,v) => if (skippable(v)) f else f ++ Seq[(String,Long)]((removeSymbols(v),1))
+            )
     }
 
-    def removeExtras(word: String): String = {
-        if(word.endsWith("'s") || word.endsWith("s'"))
-            word.replace("'", "")
-        else
-            word
+    def removeSymbols(word: String): String = {
+        word.replaceAll("\\W", "")
     }
 
-    def skippable(word: String): Boolean = {
-        ":|(|)".r.findFirstIn(word).isDefined ||
-        skip(word)
-    }
-
+    /**
+      * Not currently in use. However, it's code structure may be reused when obtaining a word count.
+      *
+      * @param keyval sequence of key value pairs that will be grouped by key and will have the value summed.
+      * @return sequence of the sum of all values grouped by key.
+      */
     def groupAgg(keyval: Seq[(String,Long)]): Seq[(String,Long)] = {
         keyval.groupBy{case (word,num) => word}
         .aggregate(Seq[(String,Long)]())(
@@ -146,7 +148,7 @@ object Requirements extends Queries {
         )
     }
 
-    private val skip = HashSet(
+    private val skippable = HashSet(
         "a",
         "the",
         "for",
@@ -161,6 +163,7 @@ object Requirements extends Queries {
         "accredited",
         "substituted",
         "work",
-        "required"
+        "required",
+        "basic"
     )
 }
