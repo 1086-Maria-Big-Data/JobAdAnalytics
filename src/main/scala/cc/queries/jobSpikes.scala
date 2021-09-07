@@ -20,6 +20,11 @@ import org.apache.spark.sql.SparkSession
 
 object jobSpikes extends Queries {
 
+    /**
+      * Builds a Parquet using the original filtered index, partitioned by fetch year & month.
+      *
+      * @param spark - SparkSession instance
+      */
     def buildIndexPartitions(spark: SparkSession): Unit = {
         partitionByMonthAndYear(
             spark, 
@@ -28,6 +33,13 @@ object jobSpikes extends Queries {
         )
     }
     
+    /**
+      * Given a source DataFrame with the fetch_time column, creates a parquet that is partitioned by fetch year and month, extracted from fetch_time.
+      *
+      * @param spark - SparkSession instance
+      * @param srcPath - the source path for the DataFrame
+      * @param dstPath - the destination path to write the parquet
+      */
     def partitionByMonthAndYear(spark: SparkSession, srcPath: String, dstPath: String): Unit = {
         val df = spark.sqlContext
             .read
@@ -39,35 +51,45 @@ object jobSpikes extends Queries {
 
         IndexUtil.writeParquet(df, dstPath, partition_cols=Seq("fetch_year", "fetch_month"))
     }
-    // def partitionByQuarter(spark: SparkSession): Unit ={
-    //     val df = spark.sqlContext
-    //         .read
-    //         .option("header", true)
-    //         .schema(IndexUtil.schema)
-    //         .csv("s3a://maria-1086/FilteredIndex/CC-MAIN-202*-**/*.csv")
-    //         .withColumn("fetch_quarter", quarter(col("fetch_time")))
 
-        
-    // }
-    def countByMonth(spark: SparkSession): DataFrame ={
+    /**
+      * Using the partitioned parquet, aggregates record count, grouping them by fetch_year and fetch_month.
+      *
+      * @param spark - SparkSession instance
+      * @return a DataFrame where each row is the aggregated row count grouped by fetch_year and fetch_month.
+      */
+    def countByMonth(spark: SparkSession): DataFrame = {
         val df = spark.sqlContext.read.option("header", true)
             .schema(IndexUtil.schema)
             .parquet("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet/")
-        var newDF = df.groupBy("fetch_year", "fetch_month").count().orderBy("fetch_year", "fetch_month")
-        return newDF
+
+        return df
+            .groupBy("fetch_year", "fetch_month")
+            .count
+            .orderBy("fetch_year", "fetch_month")
     }
+
+    /**
+      * Using the partitioned parquet, aggregates record count, grouping them by fetch_year and fetch_month.
+      *
+      * @param spark - SparkSession instance
+      * @return a DataFrame where each row is the aggregated row count grouped by fetch_year and fetch_month.
+      */
     def countByQuarter(spark: SparkSession): DataFrame ={
         val df = spark.sqlContext
-            .read.option("header", true)
+            .read
+            .option("header", true)
             .schema(IndexUtil.schema)
             .parquet("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet/")
             .withColumn("fetch_quarter", quarter(col("fetch_time")))
-        var quarterDF = df.groupBy("fetch_year", "fetch_quarter").count().orderBy("fetch_year", "fetch_quarter")
-        return quarterDF
+
+        return df
+            .groupBy("fetch_year", "fetch_quarter")
+            .count
+            .orderBy("fetch_year", "fetch_quarter")
     }
 
     def jobSpikesByJob(spark: SparkSession): Unit = {
-        //val df = spark.sqlContext.read.option("header", true).schema(IndexUtil.schema).csv("s3a://maria-1086/TeamQueries/job-posting-spikes/2021/**/*.csv")
         val df = spark.read.format("parquet").option("header", "true").load("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet")
         df.createOrReplaceTempView("dat")
         val df_jobs = spark.sql("SELECT (select count(url) from dat where LOWER(url) like '%java%' and LOWER(url) not like '%javascript%') as java, (SELECT count(url) from dat where LOWER(url) like '%python%') as python, (SELECT count(url) from dat where LOWER(url) like '%scala%') as scala, (SELECT count(url) from dat where LOWER(url) like '%matlab%') as matlab, (SELECT count(url) from dat where LOWER(url) like '%sql%') as sql from dat limit 1")
@@ -79,11 +101,10 @@ object jobSpikes extends Queries {
         
         val spark = AppSparkSession()
         val df = spark.sqlContext
-        .read
-        .option("basePath", "s3a://maria-1086/TeamQueries/job-posting-spikes/parquet")
-        .parquet("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet/")
+            .read
+            .option("basePath", "s3a://maria-1086/TeamQueries/job-posting-spikes/parquet")
+            .parquet("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet/")
 
-       // df.show
         jobSpikesByJob(spark)
     }
 }
