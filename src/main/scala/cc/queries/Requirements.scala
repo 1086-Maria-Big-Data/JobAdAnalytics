@@ -41,6 +41,8 @@ object Requirements extends Queries {
           * Filter warc records, accumulate a count of the different
           * types of requirements, and accumulate a total count simultaneously
           */
+        val totCount = spark.sparkContext.longAccumulator
+        groupAgg(warcs.mapPartitions(itrWarcs => itrWarcs.flatMap(processWarcRecord(_))))
     }
 
     // def functionChooser(readStartOp: String => Unit)(readContOp: String => Unit)(readStopOp: String => Unit)
@@ -122,7 +124,6 @@ object Requirements extends Queries {
         qLine
             .toLowerCase
             .split("(<.*?>)|:|;|\\-|(\\(.*?\\))| ")
-            .filter(_ != "")
             .foldLeft(Seq[(String,Long)]())(
                 (f,v) => if (skippable(v)) f else f ++ Seq[(String,Long)]((removeSymbols(v),1))
             )
@@ -135,10 +136,12 @@ object Requirements extends Queries {
     /**
       * Not currently in use. However, it's code structure may be reused when obtaining a word count.
       *
-      * @param keyval sequence of key value pairs that will be grouped by key and will have the value summed.
+      * @param keyval sequence of key value pairs that will be grouped by key and will have the values summed.
       * @return sequence of the sum of all values grouped by key.
       */
-    def groupAgg(keyval: Seq[(String,Long)]): Seq[(String,Long)] = {
+    def groupAgg(keyval: RDD[(String,Long)]): Seq[(String,Long)] = {
+        keyval.groupByKey()
+
         keyval.groupBy{case (word,num) => word}
         .aggregate(Seq[(String,Long)]())(
             {case (zeros,(grpkey, kvs)) => 
@@ -149,6 +152,7 @@ object Requirements extends Queries {
     }
 
     private val skippable = HashSet(
+        "",
         "a",
         "the",
         "for",
