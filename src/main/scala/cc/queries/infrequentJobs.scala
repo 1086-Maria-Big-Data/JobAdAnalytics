@@ -9,6 +9,8 @@ import org.archive.archivespark.specific.warc.functions._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import scala.collection.mutable.ArrayBuffer
 
 object infrequentJobs extends Queries {
@@ -21,7 +23,7 @@ object infrequentJobs extends Queries {
     val spark = AppSparkSession()
 
     // CHANGE THIS IF YOU WANT TO WRITE TO A DIFFERENT FOLDER
-    val writePath = "s3a://maria-1086/Testing/gabriel-testing/infrequent-out-2"
+    val writePath = "s3a://maria-1086/Testing/gabriel-testing/infrequent-out-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
 
     val crawls = Array("s3a://maria-1086/FilteredIndex/CC-MAIN-2020-05/*.csv",
       "s3a://maria-1086/FilteredIndex/CC-MAIN-2020-10/*.csv",
