@@ -137,6 +137,7 @@ object qualificationsCertifications extends Queries {
       */
     def processWarcRecord(warc: WarcRecord): Array[(String,Int)] = {
         takeLines(SuperWarc(warc).payload)
+            .filter(_.length > 0)
             .flatMap{processQualifications(_)}
     }
 
@@ -149,10 +150,15 @@ object qualificationsCertifications extends Queries {
       */
     def processQualifications(qLine: String): Array[(String,Int)] = {
         qLine
-            .toLowerCase
             .split("(<.*?>)|:|;|\\-|(\\(.*?\\))| ")
-            .map(word => (removeSymbols(word),1))
-            .filter(wn => notSkippable(wn._1))
+            .foldLeft(Array[(String, Int)]()) {
+                (list, word) => 
+                    val transformed = removeSymbols(word).toLowerCase
+                    if (notSkippable(transformed))
+                        list :+ (transformed, 1)
+                    else
+                        list
+            }
     }
 
     /**
