@@ -70,10 +70,10 @@ object jobSpikes extends Queries {
     }
 
     /**
-      * Using the partitioned parquet, aggregates record count, grouping them by fetch_year and fetch_month.
+      * Using the partitioned parquet, aggregates record count, grouping them by fetch_year and an additional new column fetch_quarter.
       *
       * @param spark - SparkSession instance
-      * @return a DataFrame where each row is the aggregated row count grouped by fetch_year and fetch_month.
+      * @return a DataFrame where each row is the aggregated row count grouped by fetch_year and fetch_quarter.
       */
     def countByQuarter(spark: SparkSession): DataFrame ={
         val df = spark.sqlContext
@@ -89,12 +89,33 @@ object jobSpikes extends Queries {
             .orderBy("fetch_year", "fetch_quarter")
     }
 
+    /**
+      * Using the partitioned parquet, aggregates record count, grouping them by programming languages. 
+      * The languages of interest here are: Java, Python, Scala, MatLab and SQL.
+      *
+      * @param spark - SparkSession instance
+      */
     def jobSpikesByJob(spark: SparkSession): Unit = {
-        val df = spark.read.format("parquet").option("header", "true").load("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet")
+        val df = spark
+            .read
+            .format("parquet")
+            .option("header", "true")
+            .load("s3a://maria-1086/TeamQueries/job-posting-spikes/parquet")
+
         df.createOrReplaceTempView("dat")
-        val df_jobs = spark.sql("SELECT (select count(url) from dat where LOWER(url) like '%java%' and LOWER(url) not like '%javascript%') as java, (SELECT count(url) from dat where LOWER(url) like '%python%') as python, (SELECT count(url) from dat where LOWER(url) like '%scala%') as scala, (SELECT count(url) from dat where LOWER(url) like '%matlab%') as matlab, (SELECT count(url) from dat where LOWER(url) like '%sql%') as sql from dat limit 1")
-        IndexUtil.writeParquet(df_jobs, "s3a://maria-1086/TeamQueries/job-posting-spikes/mark_parquet/zone")
-        
+
+        val df_jobs = spark
+            .sql(
+                "SELECT \\" +
+                "(SELECT count(url) from dat where LOWER(url) like '%java%' and LOWER(url) not like '%javascript%') as java, \\" +
+                "(SELECT count(url) from dat where LOWER(url) like '%python%') as python, \\" +
+                "(SELECT count(url) from dat where LOWER(url) like '%scala%') as scala, \\" +
+                "(SELECT count(url) from dat where LOWER(url) like '%matlab%') as matlab, \\" +
+                "(SELECT count(url) from dat where LOWER(url) like '%sql%') as sql \\" +
+                "from dat limit 1"
+            )
+
+        IndexUtil.writeParquet(df_jobs, "s3a://maria-1086/TeamQueries/job-posting-spikes/mark_parquet/zone")   
     }
         
     def main(args: Array[String]): Unit = {
