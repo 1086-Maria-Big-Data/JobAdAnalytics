@@ -16,6 +16,7 @@ import org.apache.hadoop.fs.{FileSystem,LocatedFileStatus,Path,RemoteIterator}
 
 import org.archive.archivespark.functions.Html
 import org.archive.archivespark.specific.warc.WarcRecord
+import org.apache.spark.util.AccumulatorV2
 
 object qualificationsCertifications extends Queries {
     private val s3Path      = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
@@ -23,73 +24,35 @@ object qualificationsCertifications extends Queries {
     private val writeDelim  = ","
 
     def main(args: Array[String]):Unit = {
-        val spark = AppSparkSession()
+        val spark   = AppSparkSession()
+        val wordAcc = new MapAccumulatorV2()
 
-        //Get paths to all csv files to process
-        val csvPaths = getCSVPaths(s3Path)
+        spark.sparkContext.register(wordAcc, "wcMapAccumulator")
 
         //Get warc records from private S3 index query results, union all shards and repartition
-        val warcs = generateWarcRDD(csvPaths, spark).repartition(512)
+        val testPath = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21/part-00000-bd00e7f8-5888-4093-aca8-e69ea6a0deea-c000.csv"
+        val warcs = generateWarcRDD(s3Path, spark).repartition(512)
 
         //Process the warc records and write to a csv file
-        val fullWritePath = writePath + args(0)
-        writeResults(processWarcRDD(warcs,spark),fullWritePath)
+        processWarcRDD(warcs,spark,wordAcc)
+
+        wordAcc.value.foreach{case (word, count) => println(word + "\t:: " + count)}
+        // val fullWritePath = writePath + args(0)
+        // writeResults(wordAcc,spark,fullWritePath)
     }
 
     /**
-      * Recurses into the given path to find all csv files
+      * Load all csv files found in csvBasePath and
+      * enrich the RDD with the html information
       *
-      * @param path the path to search through recursively
-      * @return an ArrayBuffer of type String with all csv file paths
-      */
-    def getCSVPaths(path: String): ArrayBuffer[String] = {
-        val path_ = new Path(path)
-        val nodeIter = FileSystem.get(path_.toUri(), SparkHadoopUtil.get.conf).listFiles(path_,true)
-
-        recGetCSVPaths(nodeIter)
-    }
-
-    /**
-      * Private helper function to recursively search a path for csv files
-      *
-      * @param itr an iterator of a remote file system
-      * @return an ArrayBuffer of type String with all csv file paths
-      */
-    private def recGetCSVPaths(itr: RemoteIterator[LocatedFileStatus]): ArrayBuffer[String] = {
-        val files = ArrayBuffer[String]()
-
-        while(itr.hasNext) {
-            val fileOrDir       = itr.next
-            val currNodePath    = fileOrDir.getPath
-            val fileIsCSV       = currNodePath.toString.endsWith(".csv")
-
-            if(fileOrDir.isDirectory)
-                files ++= recGetCSVPaths(
-                    FileSystem.get(currNodePath.toUri, SparkHadoopUtil.get.conf)
-                    .listFiles(currNodePath,true)
-                )
-
-            if(fileOrDir.isFile && fileIsCSV)
-                files += currNodePath.toString
-        }
-        files
-    }
-
-    /**
-      * Load all csv files listed in the ArrayBuffer, form a union of all formed RDDs, and
-      * enrich the RDDs with the html information
-      *
-      * @param csvPaths ArrayBuffer containing the paths of all csv files to make into RDDs
+      * @param csvBasePath path containing all csv files to make into RDDs
       * @param spark a handle to the current SparkSession
       * @return an RDD containing all WARC records that the csv files make reference to
       */
-    def generateWarcRDD(csvPaths: ArrayBuffer[String], spark: SparkSession): RDD[WarcRecord] = {
-        val warcRDDs = csvPaths.map(
-            fileP => WarcUtil.loadFiltered(spark.read.option("header", true)
-                .csv(fileP),enrich_payload = false)
-        )
-
-        spark.sparkContext.union(warcRDDs).enrich(Html.first("body"))
+    def generateWarcRDD(csvBasePath: String, spark: SparkSession): RDD[WarcRecord] = {
+        WarcUtil.loadFiltered(spark.read.option("header", true)
+                .csv(csvBasePath /*+ "/*.csv"*/*/),enrich_payload = false)
+                .enrich(Html.first("body"))
     }
 
     /**
@@ -135,9 +98,9 @@ object qualificationsCertifications extends Queries {
       * @return an Array of String-Int pairs representing a word of interest found in the
       * processQualifications function paired with the number 1 (in preparation for a word count)
       */
-    def processWarcRecord(warc: WarcRecord): Array[(String,Int)] = {
+    def processWarcRecord(warc: WarcRecord, macc: MapAccumulatorV2): Unit = {
         takeLines(SuperWarc(warc).payload)
-            .flatMap{processQualifications(_)}
+                    .foreach{macc.add("Total Records"); processQualifications(_,macc)}
     }
 
     /**
@@ -147,12 +110,18 @@ object qualificationsCertifications extends Queries {
       * @return an Array of String-Int pairs representing a word of interest found in the
       * processQualifications function paired with the number 1 (in preparation for a word count)
       */
-    def processQualifications(qLine: String): Array[(String,Int)] = {
+    def processQualifications(qLine: String, macc: MapAccumulatorV2): Unit = {
         qLine
             .toLowerCase
-            .split("(<.*?>)|:|;|\\-|(\\(.*?\\))| ")
-            .map(word => (removeSymbols(word),1))
-            .filter(wn => notSkippable(wn._1))
+            .split("(<.*?>)|(\\(.*?\\))| ")
+            .foldLeft(())((f,v) => {
+              val fmtWord = removeSymbols(v)
+
+              if(notSkippable(fmtWord))
+                macc.add(fmtWord)
+              else
+                f
+            })
     }
 
     /**
@@ -175,8 +144,8 @@ object qualificationsCertifications extends Queries {
       * @param spark a handle to the current SparkSession
       * @return a DataFrame with the final results
       */
-    def processWarcRDD(wRDD: RDD[WarcRecord], spark: SparkSession): DataFrame = {
-        spark.createDataFrame(wRDD.flatMap(processWarcRecord(_)).reduceByKey(_ + _).sortBy(_._2,false))
+    def processWarcRDD(wRDD: RDD[WarcRecord], spark: SparkSession, macc: MapAccumulatorV2): Unit = {
+            wRDD.foreach(processWarcRecord(_,macc))
     }
 
     /**
@@ -185,7 +154,9 @@ object qualificationsCertifications extends Queries {
       * @param df the DataFrame to write
       * @param writeDir the path to write to
       */
-    def writeResults(df: DataFrame, writeDir: String): Unit = {
+    def writeResults(macc: MapAccumulatorV2, spark: SparkSession, writeDir: String): Unit = {
+        val df = spark.createDataFrame(macc.value.toList)
+
         IndexUtil.write(df,writeDir, writeDelim, true, 1)
     }
 
@@ -214,4 +185,46 @@ object qualificationsCertifications extends Queries {
         "doctors"   
     )
 
+    private class MapAccumulatorV2 extends org.apache.spark.util.AccumulatorV2[String, Map[String,Int]] {
+      private val accumap = scala.collection.mutable.Map[String,Int]()
+
+      override def add(v: String): Unit = {
+        if(accumap.contains(v))
+          accumap(v) += 1
+        else
+          accumap(v) = 1
+        
+      }
+
+      override def copy(): AccumulatorV2[String,Map[String,Int]] = {
+        val cp = new MapAccumulatorV2()
+        cp.mergeValues(value)
+        cp
+      }
+
+      override def isZero: Boolean = {
+        accumap.isEmpty
+      }
+
+      override def reset(): Unit = {
+        accumap.empty
+      }
+      
+      override def merge(other: AccumulatorV2[String,Map[String,Int]]): Unit = {
+        mergeValues(other.value)
+      }
+      
+      override def value: Map[String,Int] = {
+        accumap.toMap
+      }
+
+      private def mergeValues(other: Map[String,Int]): Unit = {
+        for ((key,value) <- other)
+          if(accumap.contains(key))
+            accumap(key) += value
+          else 
+            accumap(key) = value
+      }
+    } 
 }
+
