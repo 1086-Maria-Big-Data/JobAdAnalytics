@@ -12,7 +12,10 @@ src/main/resources/
 spark-warehouse/
 
 app.config
-
+null/
+input/
 
 .DS_Store
 generic.properties
+
+test/
