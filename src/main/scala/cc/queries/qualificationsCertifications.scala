@@ -18,9 +18,10 @@ import org.archive.archivespark.functions.Html
 import org.archive.archivespark.specific.warc.WarcRecord
 
 object qualificationsCertifications extends Queries {
-    private val s3Path      = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
-    private val writePath   = "s3a://maria-1086/TeamQueries/qualification-and-certifications/"
-    private val writeDelim  = ","
+    private val s3Path            = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
+    private val writePath         = "s3a://maria-1086/TeamQueries/qualification-and-certifications/"
+    private val writeDelim        = ","
+    private val initialPartitions = 512
 
     def main(args: Array[String]):Unit = {
         val spark = AppSparkSession()
@@ -29,11 +30,21 @@ object qualificationsCertifications extends Queries {
         val csvPaths = getCSVPaths(s3Path)
 
         //Get warc records from private S3 index query results, union all shards and repartition
-        val warcs = generateWarcRDD(csvPaths, spark).repartition(512)
+        //val warcs = generateWarcRDD(csvPaths, spark).repartition(initialPartitions)
+        val index = spark.sqlContext
+            .read
+            .option("header", true)
+            .schema(IndexUtil.schema)
+            .csv(s3Path + "/*.csv")
+            .repartition(initialPartitions)
+        
+        val warcs = WarcUtil
+            .loadFiltered(index, enrich_payload=false)
+            .repartition(initialPartitions)
 
         //Process the warc records and write to a csv file
         val fullWritePath = writePath + args(0)
-        writeResults(processWarcRDD(warcs,spark),fullWritePath)
+        writeResults(processWarcRDD(warcs, spark), fullWritePath)
     }
 
     /**
@@ -192,7 +203,7 @@ object qualificationsCertifications extends Queries {
       * @param writeDir the path to write to
       */
     def writeResults(df: DataFrame, writeDir: String): Unit = {
-        IndexUtil.write(df,writeDir, writeDelim, true, 1)
+        IndexUtil.write(df, writeDir, writeDelim, true, 1)
     }
 
     private val notSkippable = HashSet(
