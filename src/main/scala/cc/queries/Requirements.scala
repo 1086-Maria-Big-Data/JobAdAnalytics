@@ -42,21 +42,8 @@ object Requirements extends Queries {
           * types of requirements, and accumulate a total count simultaneously
           */
         val totCount = spark.sparkContext.longAccumulator
-        groupAgg(warcs.mapPartitions(itrWarcs => itrWarcs.flatMap(processWarcRecord(_))))
+        warcs.mapPartitions(itrWarcs => itrWarcs.map(warc => processWarcRecord(warc)).flatten)
     }
-
-    // def functionChooser(readStartOp: String => Unit)(readContOp: String => Unit)(readStopOp: String => Unit)
-
-    // def tentativeGaurd(readStart: => Boolean): Unit = {
-    //     if (readStart)
-    //         startReading
-    //     else if (readAlreadyStarted)
-    //         continueReading
-    //     else if (readStop)
-    //         addToTotalCount
-    //     else
-    //         lookForReadStart
-    // }
 
     def getCSVPaths(path: String): ArrayBuffer[String] = {
         val path_ = new Path(path)
@@ -98,7 +85,7 @@ object Requirements extends Queries {
         "[Qq](?=ualification[s]{0,1})".r.findFirstIn(line).isDefined
     }
 
-    def takeLines(htmlString: String, numLines: Int=10): Iterable[String] = {
+    def takeLines(htmlString: String, numLines: Int=10): Array[String] = {
         val lines = htmlString
             .split("\n")
             .zipWithIndex
@@ -110,23 +97,21 @@ object Requirements extends Queries {
         if (res >= 0)
             return lines.slice(res, res + numLines).map(_._1)
         
-        return Seq("")
+        return Array[String]("")
         
     }
 
-    def processWarcRecord(warc: WarcRecord): Seq[(String,Long)] = {
+    def processWarcRecord(warc: WarcRecord): Array[(String,Int)] = {
         takeLines(SuperWarc(warc).payload)
             .flatMap{processQualifications(_)}
-            .toSeq
     }
 
-    def processQualifications(qLine: String): Seq[(String,Long)] = {
+    def processQualifications(qLine: String): Array[(String,Int)] = {
         qLine
             .toLowerCase
             .split("(<.*?>)|:|;|\\-|(\\(.*?\\))| ")
-            .foldLeft(Seq[(String,Long)]())(
-                (f,v) => if (skippable(v)) f else f ++ Seq[(String,Long)]((removeSymbols(v),1))
-            )
+            .withFilter(word => !skippable(removeSymbols(word)))
+            .map((_,1))
     }
 
     def removeSymbols(word: String): String = {
@@ -139,13 +124,13 @@ object Requirements extends Queries {
       * @param keyval sequence of key value pairs that will be grouped by key and will have the values summed.
       * @return sequence of the sum of all values grouped by key.
       */
-    def groupAgg(keyval: RDD[(String,Long)]): Seq[(String,Long)] = {
+    def groupAgg(keyval: RDD[(String,Int)]): Seq[(String,Int)] = {
         keyval.groupByKey()
 
         keyval.groupBy{case (word,num) => word}
-        .aggregate(Seq[(String,Long)]())(
+        .aggregate(Seq[(String,Int)]())(
             {case (zeros,(grpkey, kvs)) => 
-                zeros ++ Seq[(String,Long)](kvs.foldLeft((grpkey,0l))
+                zeros ++ Seq[(String,Int)](kvs.foldLeft((grpkey,0))
                 {case ((gkey,zero),(_,num)) => (gkey,zero + num)})},
             {case (_,kvs) => kvs}
         )
