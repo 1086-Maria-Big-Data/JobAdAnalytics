@@ -15,24 +15,28 @@ import org.apache.hadoop.fs.{FileSystem,LocatedFileStatus,Path,RemoteIterator}
 
 import org.archive.archivespark.functions.Html
 import org.archive.archivespark.specific.warc.WarcRecord
+import cc.idx.IndexUtil
 
 object qualificationsCertifications extends Queries {
-    private val s3Path = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
+    private val s3Path      = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21"
+    private val writePath   = "s3://maria-1086/TeamQueries/qualification-and-certifications/"
+    private val writeDelim  = ","
 
     def main(args: Array[String]): Unit = {
-        run
+        run(args)
     }
 
-    override def run():Unit = {
+    def run(args: Array[String]):Unit = {
         val spark = AppSparkSession()
 
         //Get paths to all csv files to process
         val csvPaths = getCSVPaths(s3Path)
 
         //Get warc records from private S3 index query results and union all shards
-        val warcs = generateWarcRDD(csvPaths, spark)
-        
-        warcs.flatMap(processWarcRecord(_)).reduceByKey(_ + _).sortBy(_._2,false).collect.foreach(println)
+        val warcs = generateWarcRDD(csvPaths, spark).repartition(512)
+
+        val fullWritePath = writePath + args(0)
+        IndexUtil.write(spark.createDataFrame(warcs.flatMap(processWarcRecord(_)).reduceByKey(_ + _).sortBy(_._2,false)),fullWritePath, writeDelim, true, 1)
     }
 
     def getCSVPaths(path: String): ArrayBuffer[String] = {
