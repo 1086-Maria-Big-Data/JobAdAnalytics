@@ -9,20 +9,36 @@ import org.archive.archivespark.specific.warc.functions._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import scala.collection.mutable.ArrayBuffer
 
 object infrequentJobs extends Queries {
 
   /** Main method. Identifies location of csv files to be read and writes to s3 with csv result.
     *
-    * @param args
+    * @param args Number of max postings per month that is considered Infrequent. Defaults to 3.
     */
   def main(args: Array[String]): Unit = {
+    var maxPost = 0
+
+    // try-catch for possible incorrect parameters
+    try {
+      maxPost = args(0).toInt
+      if (maxPost < 1) throw new Exception("Parameter is less than 1")
+    } catch {
+      case e: Throwable => {
+        println("INVALID PARAMETER: Defaulting to 3")
+        maxPost = 3
+      }
+    }
+    println(maxPost)
     val spark = AppSparkSession()
 
     // CHANGE THIS IF YOU WANT TO WRITE TO A DIFFERENT FOLDER
-    val writePath = "s3a://maria-1086/Testing/gabriel-testing/infrequent-out-2"
+    val writePath = "s3a://maria-1086/Testing/gabriel-testing/infrequent-out-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
 
+    // The CSV files of the filtered index generated from FilteredIndex.scala
     val crawls = Array("s3a://maria-1086/FilteredIndex/CC-MAIN-2020-05/*.csv",
       "s3a://maria-1086/FilteredIndex/CC-MAIN-2020-10/*.csv",
       "s3a://maria-1086/FilteredIndex/CC-MAIN-2020-16/*.csv",
@@ -39,6 +55,7 @@ object infrequentJobs extends Queries {
       "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-25/*.csv",
       "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-31/*.csv")
 
+    // The months corresponding to the date of the crawls
     val months = Array("01-2020",
       "02-2020",
       "03-2020",
@@ -55,14 +72,17 @@ object infrequentJobs extends Queries {
       "06-2021",
       "07-2021")
 
+    // An ArrayBuffer to hold the generated percentages
     val percentages = new ArrayBuffer[Float]()
 
+    // Generates percentages for each crawl
     for(i<- 0 to crawls.length - 1) {
-      percentages += get_Infrequent_Perc(crawls(i))
+      percentages += get_Infrequent_Perc(crawls(i), maxPost)
     }
 
     val mapMoPerc = scala.collection.mutable.Map[String, Float]()
 
+    // Maps the month to the percentage for easy CSV creation
     for(i <- 0 to percentages.length - 1) {
       mapMoPerc += Tuple2[String, Float](months(i), percentages(i))
     }
@@ -84,7 +104,7 @@ object infrequentJobs extends Queries {
     * @param path The file path `String` to the csv to be read
     * @return `Float`
     */
-  def get_Infrequent_Perc(path: String): Float = {
+  def get_Infrequent_Perc(path: String, maxPost: Int): Float = {
     val spark = AppSparkSession()
     val tPath = path
     var percentage = -1.0.toFloat
@@ -94,7 +114,7 @@ object infrequentJobs extends Queries {
       df1.createOrReplaceTempView("UniqueRec")
       val totalCompanies = spark.sql("select distinct url_host_2nd_last_part from UniqueRec").count()
       val infrequentPosters = spark.sql("SELECT DISTINCT url_host_2nd_last_part, count(url_host_2nd_last_part)" +
-        " as total FROM UniqueRec GROUP BY url_host_2nd_last_part HAVING total <= 3").count()
+        " as total FROM UniqueRec GROUP BY url_host_2nd_last_part HAVING total <= " + maxPost).count()
       percentage = infrequentPosters.toFloat / totalCompanies.toFloat * 100
     } catch {
       case e: Throwable => println("Could not load " + path)
