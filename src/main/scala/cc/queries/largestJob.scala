@@ -8,6 +8,10 @@ object largestJob extends Queries {
 def main(args: Array[String]): Unit = {
     run()
   }
+
+  /**Reads in Common Crawl FilteredIndex files from S3 bucket, counting results grouped on index "url_host_name" column
+    *
+    */
   override def run(): Unit = {
     val spark = AppSparkSession()
 
@@ -20,7 +24,6 @@ def main(args: Array[String]): Unit = {
       .count()
       .orderBy(desc("count"))
       .show(20, false)
-
 
   }
 
