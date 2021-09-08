@@ -54,12 +54,6 @@ object qualificationsCertifications extends Queries {
     def main(args: Array[String]): Unit = {
         val spark = AppSparkSession()
 
-        //Get paths to all csv files to process
-        //val csvPaths = getCSVPaths(s3Path)
-
-        //Get warc records from private S3 index query results, union all shards and repartition
-        //val warcs = generateWarcRDD(csvPaths, spark).repartition(initialPartitions)
-
         val mode = args(0)
 
         notSkippable._notSkippable = mode match {
@@ -90,62 +84,6 @@ object qualificationsCertifications extends Queries {
             val fullWritePath = writePath + mode + crawl
             writeResults(processWarcRDD(warcs, spark), fullWritePath)
         }
-    }
-
-    /**
-        * Recurses into the given path to find all csv files
-        *
-        * @param path the path to search through recursively
-        * @return an ArrayBuffer of type String with all csv file paths
-        */
-    def getCSVPaths(path: String): ArrayBuffer[String] = {
-        val path_ = new Path(path)
-        val nodeIter = FileSystem.get(path_.toUri(), SparkHadoopUtil.get.conf).listFiles(path_,true)
-
-        recGetCSVPaths(nodeIter)
-    }
-
-    /**
-        * Private helper function to recursively search a path for csv files
-        *
-        * @param itr an iterator of a remote file system
-        * @return an ArrayBuffer of type String with all csv file paths
-        */
-    private def recGetCSVPaths(itr: RemoteIterator[LocatedFileStatus]): ArrayBuffer[String] = {
-        val files = ArrayBuffer[String]()
-
-        while(itr.hasNext) {
-            val fileOrDir       = itr.next
-            val currNodePath    = fileOrDir.getPath
-            val fileIsCSV       = currNodePath.toString.endsWith(".csv")
-
-            if(fileOrDir.isDirectory)
-                files ++= recGetCSVPaths(
-                    FileSystem.get(currNodePath.toUri, SparkHadoopUtil.get.conf)
-                        .listFiles(currNodePath,true)
-                )
-
-            if(fileOrDir.isFile && fileIsCSV)
-                files += currNodePath.toString
-        }
-        files
-    }
-
-    /**
-        * Load all csv files listed in the ArrayBuffer, form a union of all formed RDDs, and
-        * enrich the RDDs with the html information
-        *
-        * @param csvPaths ArrayBuffer containing the paths of all csv files to make into RDDs
-        * @param spark a handle to the current SparkSession
-        * @return an RDD containing all WARC records that the csv files make reference to
-        */
-    def generateWarcRDD(csvPaths: ArrayBuffer[String], spark: SparkSession): RDD[WarcRecord] = {
-        val warcRDDs = csvPaths.map(
-            fileP => WarcUtil.loadFiltered(spark.read.option("header", true)
-                .csv(fileP),enrich_payload = false)
-        )
-
-        spark.sparkContext.union(warcRDDs).enrich(Html.first("body"))
     }
 
     /**
@@ -333,14 +271,32 @@ object qualificationsCertifications extends Queries {
     )
 }
 
+/**
+  * Accesory object perform some final transformations on the data to make it more presentable.
+  */
 object QCResultAggregator extends App {
   val basePath = "s3a://maria-1086/TeamQueries/qualifications-and-certifications/qualifications/"
+  val baseCPath = "s3a://maria-1086/TeamQueries/qualifications-and-certifications/certifications/"
 
   val spark = AppSparkSession()
 
   val smallDF = spark.read.option("header",true).option("inferSchema",true).csv(basePath + "*/*.csv").repartition(1)
-  import org.apache.spark.sql.functions.desc
-  val aggDF   = smallDF.groupBy("_1").sum("_2").orderBy(desc("sum(_2)"))
+  smallDF.createTempView("all")
+
+  val smallCDF = spark.read.option("header",true).option("inferSchema",true).csv(baseCPath + "*/*.csv").repartition(1)
+    smallCDF.createTempView("allc")
+
+  val aggDF = spark.sql("SELECT * FROM (" 
+            .+("SELECT 'Degree (All)' as Qualification, sum(`_2`) as `Required Count` FROM all WHERE `_1` IN('bachelors','bachelor','associates','masters','associate','phd','doctoral','doctors','doctorate', 'doctor','phds') "
+            .+("UNION SELECT 'Doctors', SUM(`_2`) FROM all WHERE `_1` IN('doctoral', 'doctorate', 'doctors', 'doctor','phd','phds') "
+            .+("UNION SELECT 'Masters', SUM(`_2`) FROM all WHERE `_1` = 'masters' "
+            .+("UNION SELECT 'Bachelors', SUM(`_2`) FROM all WHERE `_1` IN('bachelor', 'bachelors') "
+            .+("UNION SELECT 'Associates', SUM(`_2`) FROM all WHERE `_1` IN('associate', 'associates') GROUP BY `_1`) AS others "
+            .+("ORDER BY `Required Count` DESC")
+            ))))))
+
+  val aggCDF = spark.sql("SELECT `_1` as Certifications, SUM(`_2`) as `Required Count` FROM allc WHERE `_1` <> 'support' GROUP BY `Certifications` ORDER BY `Required Count` DESC")
 
   IndexUtil.write(aggDF, "s3a://maria-1086/TeamQueries/qualifications-and-certifications/qualifications-aggregated",",",true,1)
+  IndexUtil.write(aggCDF, "s3a://maria-1086/TeamQueries/qualifications-and-certifications/certifications-aggregated",",",true,1)
 }
