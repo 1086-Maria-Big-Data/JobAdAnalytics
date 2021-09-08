@@ -14,6 +14,10 @@ Job Ad Analytics makes use of common crawl data (https://commoncrawl.org/the-dat
 ## More Indepth Descriptions
 * _Wiki: [Data Pre-Processing][Wiki/preprocess]_
 * _Wiki: [Query Methodology][Wiki/query]_
+* _Wiki: [Project Description][Wiki/desc]_
+* _Wiki: [Requirements][Wiki/req]_
+* _Wiki: [Stretch Goals][Wiki/stretch]_
+* _Wiki: [Team Organization][Wiki/team]_
 ## Features/Client Requirements
 * Entry Level Experience
   * What percentage of entry level tech jobs require previous experience?
@@ -82,3 +86,7 @@ Action on Failure: Custom
 <!-- Markdown link & img dfn's -->
 [wiki/preprocess]: https://github.com/1086-Maria-Big-Data/JobAdAnalytics/wiki/Data-Preprocessing
 [wiki/query]: https://github.com/1086-Maria-Big-Data/JobAdAnalytics/wiki/Query-Methodology
+[wiki/desc]: https://github.com/1086-Maria-Big-Data/JobAdAnalytics/wiki/Project-Description
+[wiki/req]: https://github.com/1086-Maria-Big-Data/JobAdAnalytics/wiki/Requirements
+[wiki/stretch]: https://github.com/1086-Maria-Big-Data/JobAdAnalytics/wiki/Stretch-Goals
+[wiki/team]: https://github.com/1086-Maria-Big-Data/JobAdAnalytics/wiki/Team-Organization
