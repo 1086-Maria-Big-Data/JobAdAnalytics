@@ -23,7 +23,7 @@ object qualificationsCertifications extends Queries {
     private val s3Path            = "s3a://maria-1086/FilteredIndex/"
     private val writePath         = "s3a://maria-1086/TeamQueries/qualifications-and-certifications/"
     private val writeDelim        = ","
-    private val initialPartitions = 100
+    private val initialPartitions = 220
     private val crawls            = Seq(
                                     "CC-MAIN-2020-05", 
                                     "CC-MAIN-2020-10", 
@@ -44,45 +44,45 @@ object qualificationsCertifications extends Queries {
 
     var notSkippable = null.asInstanceOf[HashSet[String]]
 
-    def main(args: Array[String]):Unit = {
-            val spark = AppSparkSession()
+    def main(args: Array[String]): Unit = {
+        val spark = AppSparkSession()
 
-            //Get paths to all csv files to process
-            //val csvPaths = getCSVPaths(s3Path)
+        //Get paths to all csv files to process
+        //val csvPaths = getCSVPaths(s3Path)
 
-            //Get warc records from private S3 index query results, union all shards and repartition
-            //val warcs = generateWarcRDD(csvPaths, spark).repartition(initialPartitions)
+        //Get warc records from private S3 index query results, union all shards and repartition
+        //val warcs = generateWarcRDD(csvPaths, spark).repartition(initialPartitions)
 
-            val mode = args(0)
+        val mode = args(0)
 
-            notSkippable = mode match {
-                case "qualifications" => notSkippableQualifications
-                case "certifications" => notSkippableCertifications
-                case _ => null.asInstanceOf[HashSet[String]]
-            }
+        notSkippable = mode match {
+            case "qualifications" => notSkippableQualifications
+            case "certifications" => notSkippableCertifications
+            case _ => null.asInstanceOf[HashSet[String]]
+        }
 
-            if (notSkippable == null) {
-                throw new Exception(s"Invalid argument for mode: ${mode}")
-                System.exit(-1)
-            }
+        if (notSkippable == null) {
+            throw new Exception(s"Invalid argument for mode: ${mode}")
+            System.exit(-1)
+        }
 
-            for (crawl <- crawls) {
-                val index = spark.sqlContext
-                    .read
-                    .option("header", true)
-                    .schema(IndexUtil.schema)
-                    .csv(s3Path + crawl + "/*.csv")
-                    .repartition(initialPartitions)
-                
-                val warcs = WarcUtil
-                    .loadFiltered(index, enrich_payload=false)
-                    .repartition(initialPartitions)
-                    .enrich(Html.first("body"))
+        for (crawl <- crawls) {
+            val index = spark.sqlContext
+                .read
+                .option("header", true)
+                .schema(IndexUtil.schema)
+                .csv(s3Path + crawl + "/*.csv")
+                .repartition(initialPartitions)
+            
+            val warcs = WarcUtil
+                .loadFiltered(index, enrich_payload=false)
+                .repartition(initialPartitions)
+                .enrich(Html.first("body"))
 
-                //Process the warc records and write to a csv file
-                val fullWritePath = writePath + mode + crawl
-                writeResults(processWarcRDD(warcs, spark), fullWritePath)
-            }
+            //Process the warc records and write to a csv file
+            val fullWritePath = writePath + mode + crawl
+            writeResults(processWarcRDD(warcs, spark), fullWritePath)
+        }
     }
 
     /**
@@ -177,16 +177,16 @@ object qualificationsCertifications extends Queries {
 
     /**
         * Wrapper function to improve code readability in main.
-        * Calls takeLines and processQualifications sequentially.
+        * Calls takeLines and processLine sequentially.
         *
-        * @param warc the WarcRecord to process through takeLines and processQualifications
+        * @param warc the WarcRecord to process through takeLines and processLine
         * @return an Array of String-Int pairs representing a word of interest found in the
-        * processQualifications function paired with the number 1 (in preparation for a word count)
+        * processLine function paired with the number 1 (in preparation for a word count)
         */
     def processWarcRecord(warc: WarcRecord): Array[(String,Int)] = {
         takeLines(SuperWarc(warc).payload)
             .filter(_.length > 0)
-            .flatMap{processQualifications(_)}
+            .flatMap{processLine(_)}
     }
 
     /**
@@ -194,15 +194,15 @@ object qualificationsCertifications extends Queries {
         *
         * @param qLine a collected line from takeLines
         * @return an Array of String-Int pairs representing a word of interest found in the
-        * processQualifications function paired with the number 1 (in preparation for a word count)
+        * processLine function paired with the number 1 (in preparation for a word count)
         */
-    def processQualifications(qLine: String): Array[(String,Int)] = {
+    def processLine(qLine: String): Array[(String,Int)] = {
         qLine
             .split("(<.*?>)|:|;|\\-|(\\(.*?\\))| ")
             .foldLeft(Array[(String, Int)]()) {
                 (list, word) => 
                     val transformed = removeSymbols(word).toLowerCase
-                    if (notSkippable(transformed))
+                    if (notSkippableCertifications(transformed))
                         list :+ (transformed, 1)
                     else
                         list
