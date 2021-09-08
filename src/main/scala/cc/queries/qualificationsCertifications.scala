@@ -11,7 +11,7 @@ import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame,SparkSession}
+import org.apache.spark.sql.{DataFrame,Row,SparkSession}
 import org.apache.hadoop.fs.{FileSystem,LocatedFileStatus,Path,RemoteIterator}
 
 import org.archive.archivespark.functions.Html
@@ -23,7 +23,7 @@ object qualificationsCertifications extends Queries {
     private val s3Path            = "s3a://maria-1086/FilteredIndex/"
     private val writePath         = "s3a://maria-1086/TeamQueries/qualifications-and-certifications/"
     private val writeDelim        = ","
-    private val initialPartitions = 512
+    private val initialPartitions = 100
     private val crawls            = Seq(
                                     "CC-MAIN-2020-05", 
                                     "CC-MAIN-2020-10", 
@@ -313,6 +313,27 @@ object qualificationsCertifications extends Queries {
         "pcap",
         "pcpp1",
         "pcpp2",
-        "cepp"
+        "cepp",
+        "cwp",
+        "emcapd",
+        "csdp",
+        "mcsd",
+        "mcad",
+        "gweb",
+        "ace",
+        "cp450",
+        "csslp"
     )
+}
+
+object QCResultAggregator extends App {
+  val basePath = "s3a://maria-1086/TeamQueries/qualifications-and-certifications/qualifications/"
+
+  val spark = AppSparkSession()
+
+  val smallDF = spark.read.option("header",true).option("inferSchema",true).csv(basePath + "*/*.csv").repartition(1)
+  import org.apache.spark.sql.functions.desc
+  val aggDF   = smallDF.groupBy("_1").sum("_2").orderBy(desc("sum(_2)"))
+
+  IndexUtil.write(aggDF, "s3a://maria-1086/TeamQueries/qualifications-and-certifications/qualifications-aggregated",",",true,1)
 }
