@@ -19,6 +19,11 @@ import org.archive.archivespark.specific.warc.WarcRecord
 import scala.annotation.switch
 import cats.kernel.Hash
 
+trait notSkippable {
+    var _notSkippable: HashSet[String]
+    def apply(word: String): Boolean = _notSkippable(word)
+}
+
 object qualificationsCertifications extends Queries {
     private val s3Path            = "s3a://maria-1086/FilteredIndex/"
     private val writePath         = "s3a://maria-1086/TeamQueries/qualifications-and-certifications/"
@@ -42,7 +47,9 @@ object qualificationsCertifications extends Queries {
                                     "CC-MAIN-2021-31"
                                 )
 
-    var notSkippable = null.asInstanceOf[HashSet[String]]
+    val notSkippable = new notSkippable {
+        var _notSkippable: HashSet[String] = null
+    }
 
     def main(args: Array[String]): Unit = {
         val spark = AppSparkSession()
@@ -55,7 +62,7 @@ object qualificationsCertifications extends Queries {
 
         val mode = args(0)
 
-        notSkippable = mode match {
+        notSkippable._notSkippable = mode match {
             case "qualifications" => notSkippableQualifications
             case "certifications" => notSkippableCertifications
             case _ => null.asInstanceOf[HashSet[String]]
