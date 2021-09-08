@@ -31,12 +31,12 @@ object qualificationsCertifications extends Queries {
 
         //Get warc records from private S3 index query results, union all shards and repartition
         val testPath = "s3a://maria-1086/FilteredIndex/CC-MAIN-2021-21/part-00000-bd00e7f8-5888-4093-aca8-e69ea6a0deea-c000.csv"
-        val warcs = generateWarcRDD(s3Path, spark).repartition(512)
+        val warcs = generateWarcRDD(s3Path, spark)
 
         //Process the warc records and write to a csv file
         processWarcRDD(warcs,spark,wordAcc)
 
-        wordAcc.value.foreach{case (word, count) => println(word + "\t:: " + count)}
+        wordAcc.value.toList.sortBy(_._2).foreach{case (word, count) => println(word + "\t:: " + count)}
         // val fullWritePath = writePath + args(0)
         // writeResults(wordAcc,spark,fullWritePath)
     }
@@ -51,7 +51,7 @@ object qualificationsCertifications extends Queries {
       */
     def generateWarcRDD(csvBasePath: String, spark: SparkSession): RDD[WarcRecord] = {
         WarcUtil.loadFiltered(spark.read.option("header", true)
-                .csv(csvBasePath /*+ "/*.csv"*/*/),enrich_payload = false)
+                .csv(csvBasePath /*+ "/*.csv"*/*/).repartition(512),enrich_payload = false)
                 .enrich(Html.first("body"))
     }
 
@@ -112,10 +112,10 @@ object qualificationsCertifications extends Queries {
       */
     def processQualifications(qLine: String, macc: MapAccumulatorV2): Unit = {
         qLine
-            .toLowerCase
-            .split("(<.*?>)|(\\(.*?\\))| ")
+            // .split("(<.*?>)|(\\(.*?\\))| ")
+            .split(" ")
             .foldLeft(())((f,v) => {
-              val fmtWord = removeSymbols(v)
+              val fmtWord = removeSymbols(v).toLowerCase
 
               if(notSkippable(fmtWord))
                 macc.add(fmtWord)
